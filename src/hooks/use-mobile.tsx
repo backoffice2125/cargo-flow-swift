@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
@@ -16,4 +17,34 @@ export function useIsMobile() {
   }, [])
 
   return !!isMobile
+}
+
+// Create MobileNavContext to manage mobile navigation state
+interface MobileNavContextType {
+  mobileOpen: boolean
+  setMobileOpen: (open: boolean) => void
+}
+
+const MobileNavContext = React.createContext<MobileNavContextType | undefined>(undefined)
+
+// Provider component
+export function MobileNavProvider({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = React.useState(false)
+  
+  return (
+    <MobileNavContext.Provider value={{ mobileOpen, setMobileOpen }}>
+      {children}
+    </MobileNavContext.Provider>
+  )
+}
+
+// Hook to use the mobile navigation context
+export function useMobileNav() {
+  const context = React.useContext(MobileNavContext)
+  
+  if (context === undefined) {
+    throw new Error("useMobileNav must be used within a MobileNavProvider")
+  }
+  
+  return context
 }

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { MobileNavProvider } from '@/hooks/use-mobile';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,7 +21,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  return <>{children}</>;
+  return (
+    <MobileNavProvider>
+      {children}
+    </MobileNavProvider>
+  );
 };
 
 export default ProtectedRoute;
