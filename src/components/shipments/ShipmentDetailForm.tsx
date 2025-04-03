@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -300,12 +299,10 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle number fields
     if (type === 'number') {
       const numValue = value === '' ? 0 : Number(value);
       setFormData({ ...formData, [name]: numValue });
     } else {
-      // Handle text fields
       setFormData({ ...formData, [name]: value });
     }
   };
@@ -317,7 +314,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
     const requiredFields = ["customer_id", "service_id", "gross_weight"];
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
@@ -330,7 +326,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       return;
     }
     
-    // Validate format selection based on service
     if (selectedService === 'Prior' && !formData.prior_format_id) {
       toast({
         title: "Missing required field",
@@ -370,16 +365,11 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     setLoading(true);
     
     try {
-      // Calculate net weight
-      const netWeight = Number(formData.gross_weight) - Number(formData.tare_weight);
-      
       if (isEditMode && detailId) {
-        // Update existing detail
         const { error } = await supabase
           .from('shipment_details')
           .update({
             ...formData,
-            net_weight: netWeight,
             shipment_id: shipmentId
           })
           .eq('id', detailId);
@@ -394,13 +384,11 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
           description: "Shipment detail updated successfully",
         });
       } else {
-        // Create new detail
         const { error } = await supabase
           .from('shipment_details')
           .insert([
             {
               ...formData,
-              net_weight: netWeight,
               shipment_id: shipmentId
             }
           ]);
@@ -482,7 +470,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               </Select>
             </div>
             
-            {/* Format fields based on selected service */}
             {selectedService === 'Standard' && (
               <div className="space-y-2">
                 <Label htmlFor="format_id">Format*</Label>
