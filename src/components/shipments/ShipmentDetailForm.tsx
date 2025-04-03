@@ -370,17 +370,24 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     setLoading(true);
     
     try {
+      // Calculate net weight
+      const netWeight = Number(formData.gross_weight) - Number(formData.tare_weight);
+      
       if (isEditMode && detailId) {
         // Update existing detail
         const { error } = await supabase
           .from('shipment_details')
           .update({
             ...formData,
+            net_weight: netWeight,
             shipment_id: shipmentId
           })
           .eq('id', detailId);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         
         toast({
           title: "Success",
@@ -393,11 +400,15 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
           .insert([
             {
               ...formData,
+              net_weight: netWeight,
               shipment_id: shipmentId
             }
           ]);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         
         toast({
           title: "Success",
@@ -406,13 +417,13 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       }
       
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving shipment detail:', error);
       toast({
         title: "Error",
         description: isEditMode 
-          ? "Failed to update shipment detail" 
-          : "Failed to add shipment detail",
+          ? `Failed to update shipment detail: ${error.message}` 
+          : `Failed to add shipment detail: ${error.message}`,
         variant: "destructive",
       });
     } finally {
