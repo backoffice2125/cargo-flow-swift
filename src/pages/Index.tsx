@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, TrendingUp } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, Truck, Package } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 // Mock data for shipments
