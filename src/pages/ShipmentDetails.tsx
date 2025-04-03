@@ -1,414 +1,388 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Save, Plus, Trash, Edit, FilePlus, FileText, Clipboard } from "lucide-react";
-import { usePDF } from "@/contexts/PDFContext";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
-const customers = [
-  { id: "1", name: "Asendia A/C" },
-  { id: "2", name: "DHL" },
-  { id: "3", name: "UPS" },
-  { id: "4", name: "FedEx" },
-];
-
-const services = [
-  { id: "1", name: "Prior" },
-  { id: "2", name: "Eco" },
-  { id: "3", name: "S3C" },
-];
-
-const priorFormats = [
-  { id: "1", name: "Format A" },
-  { id: "2", name: "Format B" },
-];
-
-const ecoFormats = [
-  { id: "1", name: "Eco Format 1" },
-  { id: "2", name: "Eco Format 2" },
-];
-
-const s3cFormats = [
-  { id: "1", name: "S3C Format A" },
-  { id: "2", name: "S3C Format B" },
-];
-
-const doeOptions = [
-  { id: "1", name: "Option 1" },
-  { id: "2", name: "Option 2" },
-  { id: "3", name: "Option 3" },
-];
-
-interface DetailFormData {
+interface Shipment {
   id: string;
-  pallets: number;
-  bags: number;
-  customer: string;
-  service: string;
-  format: string;
-  tareWeight: number;
-  grossWeight: number;
-  dispatchNumber: string;
-  doe: string;
+  carrier_id: string;
+  subcarrier_id: string;
+  driver_name: string;
+  departure_date: string;
+  arrival_date: string;
+  status: string;
+  seal_no: string | null;
+  truck_reg_no: string | null;
+  trailer_reg_no: string | null;
+  carrier: {
+    name: string;
+  } | null;
+  subcarrier: {
+    name: string;
+  } | null;
 }
 
-const ShipmentDetailForm = ({ onSave, onCancel }: { onSave: (data: DetailFormData) => void; onCancel: () => void }) => {
-  const [detailData, setDetailData] = useState<DetailFormData>({
-    id: Date.now().toString(),
-    pallets: 1,
-    bags: 0,
-    customer: "",
-    service: "",
-    format: "",
-    tareWeight: 25.7,
-    grossWeight: 0,
-    dispatchNumber: "",
-    doe: "",
-  });
-  
-  const [selectedService, setSelectedService] = useState("");
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    if (name === "pallets" || name === "bags" || name === "tareWeight" || name === "grossWeight") {
-      const numValue = parseFloat(value) || 0;
-      
-      if (name === "bags") {
-        const newTareWeight = numValue > 0 ? 25.7 + (numValue * 0.125) : 25.7;
-        setDetailData({ 
-          ...detailData, 
-          [name]: numValue,
-          tareWeight: parseFloat(newTareWeight.toFixed(2))
-        });
-        return;
-      }
-      
-      setDetailData({ ...detailData, [name]: numValue });
-      return;
-    }
-    
-    setDetailData({ ...detailData, [name]: value });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    if (name === "service") {
-      setSelectedService(value);
-      setDetailData({ ...detailData, [name]: value, format: "" });
-    } else {
-      setDetailData({ ...detailData, [name]: value });
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(detailData);
-  };
-
-  const getFormatOptions = () => {
-    switch (selectedService) {
-      case "1": // Prior
-        return priorFormats;
-      case "2": // Eco
-        return ecoFormats;
-      case "3": // S3C
-        return s3cFormats;
-      default:
-        return [];
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="pallets">Number of Pallets</Label>
-          <Input
-            id="pallets"
-            name="pallets"
-            type="number"
-            min="1"
-            value={detailData.pallets}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bags">Number of Bags</Label>
-          <Input
-            id="bags"
-            name="bags"
-            type="number"
-            min="0"
-            value={detailData.bags}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="customer">Customer</Label>
-          <Select 
-            onValueChange={(value) => handleSelectChange("customer", value)}
-            value={detailData.customer}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="service">Service</Label>
-          <Select 
-            onValueChange={(value) => handleSelectChange("service", value)}
-            value={detailData.service}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select service" />
-            </SelectTrigger>
-            <SelectContent>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectedService && (
-          <div className="space-y-2">
-            <Label htmlFor="format">{selectedService === "1" ? "Prior Format" : selectedService === "2" ? "Eco Format" : "S3C Format"}</Label>
-            <Select 
-              onValueChange={(value) => handleSelectChange("format", value)}
-              value={detailData.format}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={`Select ${selectedService === "1" ? "prior" : selectedService === "2" ? "eco" : "S3C"} format`} />
-              </SelectTrigger>
-              <SelectContent>
-                {getFormatOptions().map((format) => (
-                  <SelectItem key={format.id} value={format.id}>
-                    {format.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label htmlFor="tareWeight">Tare Weight (kg)</Label>
-          <Input
-            id="tareWeight"
-            name="tareWeight"
-            type="number"
-            step="0.01"
-            value={detailData.tareWeight}
-            onChange={handleChange}
-            disabled
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="grossWeight">Gross Weight (kg)</Label>
-          <Input
-            id="grossWeight"
-            name="grossWeight"
-            type="number"
-            step="0.01"
-            value={detailData.grossWeight}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dispatchNumber">Dispatch Number</Label>
-          <Input
-            id="dispatchNumber"
-            name="dispatchNumber"
-            value={detailData.dispatchNumber}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="doe">DOE</Label>
-          <Select 
-            onValueChange={(value) => handleSelectChange("doe", value)}
-            value={detailData.doe}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select DOE option" />
-            </SelectTrigger>
-            <SelectContent>
-              {doeOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-4">
-        <Button variant="outline" type="button" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          <Save className="mr-2 h-4 w-4" />
-          Save Detail
-        </Button>
-      </div>
-    </form>
-  );
-};
+interface ShipmentDetail {
+  id: string;
+  shipment_id: string;
+  number_of_pallets: number;
+  number_of_bags: number;
+  customer_id: string;
+  service_id: string;
+  format_id: string | null;
+  prior_format_id: string | null;
+  eco_format_id: string | null;
+  s3c_format_id: string | null;
+  tare_weight: number;
+  gross_weight: number;
+  net_weight: number;
+  dispatch_number: string | null;
+  doe_id: string | null;
+  customer: {
+    name: string;
+    is_asendia: boolean;
+  } | null;
+  service: {
+    name: string;
+  } | null;
+  format: {
+    name: string;
+  } | null;
+  prior_format: {
+    name: string;
+  } | null;
+  eco_format: {
+    name: string;
+  } | null;
+  s3c_format: {
+    name: string;
+  } | null;
+  doe: {
+    name: string;
+  } | null;
+}
 
 const ShipmentDetails = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [details, setDetails] = useState<ShipmentDetail[]>([]);
   const [showDetailForm, setShowDetailForm] = useState(false);
-  const [details, setDetails] = useState<DetailFormData[]>([]);
+  const [editingDetailId, setEditingDetailId] = useState<string | null>(null);
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [deleteDetailId, setDeleteDetailId] = useState<string | null>(null);
+  const [completeAlertOpen, setCompleteAlertOpen] = useState(false);
+  
   const [totals, setTotals] = useState({
     grossWeight: 0,
     tareWeight: 0,
     netWeight: 0,
     pallets: 0,
     bags: 0,
+    asendiaNetWeight: 0,
+    otherNetWeight: 0
   });
 
-  const shipment = {
-    id: id || "1",
-    carrier: "FedEx",
-    subcarrier: "Express",
-    driverName: "John Doe",
-    departureDate: "2023-04-01",
-    arrivalDate: "2023-04-02",
-    status: "pending",
-    sealNo: "SL12345",
-    truckRegNo: "TR5678",
-    trailerRegNo: "TL9012",
-  };
+  // Fetch shipment and details data
+  useEffect(() => {
+    const fetchShipmentData = async () => {
+      if (!id) return;
 
-  const calculateTotals = (detailsArray: DetailFormData[]) => {
+      setIsLoading(true);
+      
+      try {
+        // Fetch shipment
+        const { data: shipmentData, error: shipmentError } = await supabase
+          .from('shipments')
+          .select(`
+            *,
+            carrier:carrier_id(name),
+            subcarrier:subcarrier_id(name)
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (shipmentError) throw shipmentError;
+        setShipment(shipmentData);
+        
+        // Fetch shipment details
+        const { data: detailsData, error: detailsError } = await supabase
+          .from('shipment_details')
+          .select(`
+            *,
+            customer:customer_id(name, is_asendia),
+            service:service_id(name),
+            format:format_id(name),
+            prior_format:prior_format_id(name),
+            eco_format:eco_format_id(name),
+            s3c_format:s3c_format_id(name),
+            doe:doe_id(name)
+          `)
+          .eq('shipment_id', id)
+          .order('created_at', { ascending: true });
+          
+        if (detailsError) throw detailsError;
+        setDetails(detailsData || []);
+        
+        calculateTotals(detailsData || []);
+      } catch (error) {
+        console.error('Error fetching shipment data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load shipment data",
+          variant: "destructive",
+        });
+        
+        // If shipment not found, navigate back to dashboard
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchShipmentData();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('shipment-details-changes')
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'shipment_details', filter: `shipment_id=eq.${id}` },
+          (payload) => {
+            fetchShipmentData(); // Refresh data on any change
+          }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, navigate, toast]);
+
+  // Calculate totals
+  const calculateTotals = (detailsArray: ShipmentDetail[]) => {
     const newTotals = {
       grossWeight: 0,
       tareWeight: 0,
       netWeight: 0,
       pallets: 0,
       bags: 0,
+      asendiaNetWeight: 0,
+      otherNetWeight: 0
     };
 
     detailsArray.forEach(detail => {
-      newTotals.grossWeight += detail.grossWeight;
-      newTotals.tareWeight += detail.tareWeight;
-      newTotals.pallets += detail.pallets;
-      newTotals.bags += detail.bags;
+      newTotals.grossWeight += detail.gross_weight;
+      newTotals.tareWeight += detail.tare_weight;
+      newTotals.netWeight += detail.net_weight;
+      newTotals.pallets += detail.number_of_pallets;
+      newTotals.bags += detail.number_of_bags;
+      
+      // Calculate customer-specific net weights
+      if (detail.customer?.is_asendia) {
+        newTotals.asendiaNetWeight += detail.net_weight;
+      } else {
+        newTotals.otherNetWeight += detail.net_weight;
+      }
     });
-
-    newTotals.netWeight = newTotals.grossWeight - newTotals.tareWeight;
     
     setTotals(newTotals);
   };
 
-  const handleSaveDetail = (data: DetailFormData) => {
-    const newDetails = [...details, data];
-    setDetails(newDetails);
-    calculateTotals(newDetails);
+  const handleSaveDetail = () => {
     setShowDetailForm(false);
-    
-    toast({
-      title: "Success",
-      description: "Shipment detail added successfully",
-    });
+    setEditingDetailId(null);
   };
 
-  const handleDeleteDetail = (id: string) => {
-    const newDetails = details.filter(detail => detail.id !== id);
-    setDetails(newDetails);
-    calculateTotals(newDetails);
+  const handleEditDetail = (detailId: string) => {
+    setEditingDetailId(detailId);
+    setShowDetailForm(true);
+  };
+
+  const handleDeleteDetail = (detailId: string) => {
+    setDeleteDetailId(detailId);
+    setDeleteAlertOpen(true);
+  };
+
+  const confirmDeleteDetail = async () => {
+    if (!deleteDetailId) return;
     
-    toast({
-      title: "Detail removed",
-      description: "Shipment detail has been removed",
-    });
+    try {
+      const { error } = await supabase
+        .from('shipment_details')
+        .delete()
+        .eq('id', deleteDetailId);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Detail deleted",
+        description: "Shipment detail has been removed",
+      });
+      
+      // Update the details array
+      setDetails(prev => prev.filter(detail => detail.id !== deleteDetailId));
+      calculateTotals(details.filter(detail => detail.id !== deleteDetailId));
+    } catch (error) {
+      console.error('Error deleting detail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the shipment detail",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteAlertOpen(false);
+      setDeleteDetailId(null);
+    }
   };
 
   const handleCompleteShipment = () => {
-    toast({
-      title: "Shipment Completed",
-      description: "The shipment has been marked as completed",
-    });
+    if (details.length === 0) {
+      toast({
+        title: "Cannot complete shipment",
+        description: "Add at least one detail item before completing the shipment",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    setTimeout(() => {
-      navigate("/");
-    }, 1500);
+    setCompleteAlertOpen(true);
   };
 
-  const { generatePreAlertPDF, generateCMRPDF, loading: pdfLoading } = usePDF();
+  const confirmCompleteShipment = async () => {
+    if (!id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({ status: 'completed' })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      if (shipment) {
+        setShipment({ ...shipment, status: 'completed' });
+      }
+      
+      // Create audit log
+      await supabase
+        .from('audit_logs')
+        .insert([{
+          user_id: user?.id,
+          shipment_id: id,
+          action: 'complete_shipment',
+          new_data: { status: 'completed' }
+        }]);
+        
+      toast({
+        title: "Shipment completed",
+        description: "The shipment has been marked as completed",
+      });
+    } catch (error) {
+      console.error('Error completing shipment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark the shipment as completed",
+        variant: "destructive",
+      });
+    } finally {
+      setCompleteAlertOpen(false);
+    }
+  };
 
-  const handleGeneratePreAlertPDF = async () => {
-    if (!id) return;
-    await generatePreAlertPDF(id);
-  };
-  
-  const handleGenerateCMRPDF = async () => {
-    if (!id) return;
-    await generateCMRPDF(id);
-  };
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center items-center min-h-[500px]">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!shipment) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[500px]">
+          <h2 className="text-2xl font-bold">Shipment not found</h2>
+          <Button variant="link" onClick={() => navigate('/')}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-3xl font-bold">Shipment {id}</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">Shipment Details</h1>
+          </div>
+          {shipment.status === 'pending' && (
+            <Button 
+              variant="default"
+              onClick={handleCompleteShipment}
+              disabled={details.length === 0}
+            >
+              Mark as Completed
+            </Button>
+          )}
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Shipment Information</CardTitle>
             <CardDescription>
-              View and manage this shipment
+              View details for this shipment
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Carrier</p>
-                <p className="font-medium">{shipment.carrier} - {shipment.subcarrier}</p>
+                <p className="font-medium">{shipment.carrier?.name || "-"} {shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Driver</p>
-                <p className="font-medium">{shipment.driverName}</p>
+                <p className="font-medium">{shipment.driver_name}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Departure Date</p>
-                <p className="font-medium">{new Date(shipment.departureDate).toLocaleDateString()}</p>
+                <p className="font-medium">{new Date(shipment.departure_date).toLocaleDateString()}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Arrival Date</p>
-                <p className="font-medium">{new Date(shipment.arrivalDate).toLocaleDateString()}</p>
+                <p className="font-medium">{new Date(shipment.arrival_date).toLocaleDateString()}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Seal No</p>
-                <p className="font-medium">{shipment.sealNo || "-"}</p>
+                <p className="font-medium">{shipment.seal_no || "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -424,17 +398,17 @@ const ShipmentDetails = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Truck Reg No</p>
-                <p className="font-medium">{shipment.truckRegNo || "-"}</p>
+                <p className="font-medium">{shipment.truck_reg_no || "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Trailer Reg No</p>
-                <p className="font-medium">{shipment.trailerRegNo || "-"}</p>
+                <p className="font-medium">{shipment.trailer_reg_no || "-"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
@@ -475,6 +449,14 @@ const ShipmentDetails = () => {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Asendia Net</p>
+                <p className="text-2xl font-bold mt-1">{totals.asendiaNetWeight.toFixed(2)} kg</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -482,144 +464,183 @@ const ShipmentDetails = () => {
             <div>
               <CardTitle>Shipment Details</CardTitle>
               <CardDescription>
-                View and manage detailed items in this shipment
+                Manage items in this shipment
               </CardDescription>
             </div>
-            <Button onClick={() => setShowDetailForm(true)} disabled={showDetailForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Detail
-            </Button>
+            {shipment.status === 'pending' && (
+              <Button 
+                onClick={() => {
+                  setEditingDetailId(null);
+                  setShowDetailForm(true);
+                }} 
+                disabled={showDetailForm}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Detail
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {showDetailForm ? (
               <ShipmentDetailForm 
-                onSave={handleSaveDetail} 
-                onCancel={() => setShowDetailForm(false)} 
+                shipmentId={id!}
+                onCancel={() => {
+                  setShowDetailForm(false);
+                  setEditingDetailId(null);
+                }} 
+                onSave={handleSaveDetail}
+                isEditMode={!!editingDetailId}
+                detailId={editingDetailId}
               />
             ) : details.length > 0 ? (
               <div className="space-y-4">
                 {details.map((detail) => (
-                  <div key={detail.id} className="p-4 border rounded-md">
+                  <div key={detail.id} className="p-4 border rounded-md bg-card">
                     <div className="flex justify-between mb-2">
                       <h3 className="font-medium">
-                        {customers.find(c => c.id === detail.customer)?.name || "Customer"} - 
-                        {services.find(s => s.id === detail.service)?.name || "Service"}
+                        {detail.customer?.name || "Customer"} - {detail.service?.name || "Service"}
                       </h3>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteDetail(detail.id)}>
-                          <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {shipment.status === 'pending' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover">
+                            <DropdownMenuItem onClick={() => handleEditDetail(detail.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteDetail(detail.id)}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Pallets</p>
-                        <p className="text-sm">{detail.pallets}</p>
+                        <p>{detail.number_of_pallets}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Bags</p>
-                        <p className="text-sm">{detail.bags}</p>
+                        <p>{detail.number_of_bags}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Format</p>
+                        <p>
+                          {
+                            detail.service?.name === 'Prior' ? detail.prior_format?.name :
+                            detail.service?.name === 'Eco' ? detail.eco_format?.name :
+                            detail.service?.name === 'S3C' ? detail.s3c_format?.name :
+                            detail.format?.name || '-'
+                          }
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Gross Weight</p>
-                        <p className="text-sm">{detail.grossWeight} kg</p>
+                        <p>{detail.gross_weight} kg</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Tare Weight</p>
-                        <p className="text-sm">{detail.tareWeight} kg</p>
+                        <p>{detail.tare_weight} kg</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Net Weight</p>
-                        <p className="text-sm">{(detail.grossWeight - detail.tareWeight).toFixed(2)} kg</p>
+                        <p>{detail.net_weight.toFixed(2)} kg</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Dispatch Number</p>
-                        <p className="text-sm">{detail.dispatchNumber || "-"}</p>
-                      </div>
+                      {detail.dispatch_number && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Dispatch Number</p>
+                          <p>{detail.dispatch_number}</p>
+                        </div>
+                      )}
+                      {detail.doe && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">DOE</p>
+                          <p>{detail.doe.name}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
 
-                <div className="flex justify-end gap-4 mt-6">
-                  <Button variant="outline" onClick={() => navigate("/")}>
-                    Back to Dashboard
-                  </Button>
-                  <Button className="bg-swift-teal-500 hover:bg-swift-teal-600" onClick={handleCompleteShipment}>
-                    Mark as Completed
-                  </Button>
-                </div>
+                {shipment.status === 'completed' && (
+                  <div className="mt-6">
+                    <Card className="bg-muted/30">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Document Generation</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                            <FilePlus className="h-6 w-6 mb-2" />
+                            <span>Generate Pre-Alert PDF</span>
+                          </Button>
+                          <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+                            <FilePlus className="h-6 w-6 mb-2" />
+                            <span>Generate CMR PDF</span>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
                 <p className="text-muted-foreground">No details added to this shipment yet</p>
-                <Button onClick={() => setShowDetailForm(true)} className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add First Detail
-                </Button>
+                {shipment.status === 'pending' && (
+                  <Button onClick={() => setShowDetailForm(true)} className="mt-4">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Detail
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
-
-        {details.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Generation</CardTitle>
-              <CardDescription>
-                Generate shipment documents
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
-                  <FilePlus className="h-6 w-6 mb-2" />
-                  <span>Generate Pre-Alert PDF</span>
-                </Button>
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
-                  <FilePlus className="h-6 w-6 mb-2" />
-                  <span>Generate CMR PDF</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {shipment.status === 'completed' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>
-                Generated documents for this shipment
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-auto py-6 px-6 flex flex-col items-center gap-2"
-                  onClick={handleGeneratePreAlertPDF}
-                  disabled={pdfLoading}
-                >
-                  <FileText className="h-8 w-8" />
-                  <span>Pre-Alert PDF</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-auto py-6 px-6 flex flex-col items-center gap-2"
-                  onClick={handleGenerateCMRPDF}
-                  disabled={pdfLoading}
-                >
-                  <Clipboard className="h-8 w-8" />
-                  <span>CMR PDF</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
+
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Shipment Detail</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this shipment detail? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDetail} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={completeAlertOpen} onOpenChange={setCompleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Shipment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this shipment as completed? This will lock the shipment for further editing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCompleteShipment}>
+              Complete Shipment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

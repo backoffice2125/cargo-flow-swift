@@ -1,28 +1,24 @@
 
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { PDFProvider } from "@/contexts/PDFContext";
-import Index from "@/pages/Index";
-import Login from "@/pages/Login";
-import ShipmentNew from "@/pages/ShipmentNew";
-import ShipmentDetails from "@/pages/ShipmentDetails";
-import NotFound from "@/pages/NotFound";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { AuthProvider } from '@/contexts/AuthContext';
+import { PDFProvider } from '@/contexts/PDFContext';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Login from '@/pages/Login';
+import Index from '@/pages/Index';
+import NotFound from '@/pages/NotFound';
+import ShipmentNew from '@/pages/ShipmentNew';
+import ShipmentDetails from '@/pages/ShipmentDetails';
+import DropdownManagement from '@/pages/DropdownManagement';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
+      <PDFProvider>
         <AuthProvider>
-          <PDFProvider>
+          <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
@@ -40,13 +36,20 @@ const App = () => (
                   <ShipmentDetails />
                 </ProtectedRoute>
               } />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/manage/dropdowns" element={
+                <ProtectedRoute>
+                  <DropdownManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/404" element={<NotFound />} />
+              <Route path="*" element={<Navigate to="/404" />} />
             </Routes>
-          </PDFProvider>
+          </BrowserRouter>
+          <Toaster />
         </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </PDFProvider>
+    </ThemeProvider>
+  );
+}
 
 export default App;
