@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Save, Plus, Trash, Edit, FilePlus } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash, Edit, FilePlus, FileText, Clipboard } from "lucide-react";
+import { usePDF } from "@/contexts/PDFContext";
 
-// Mock data for dropdown values
 const customers = [
   { id: "1", name: "Asendia A/C" },
   { id: "2", name: "DHL" },
@@ -77,11 +76,9 @@ const ShipmentDetailForm = ({ onSave, onCancel }: { onSave: (data: DetailFormDat
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Special handling for number fields
     if (name === "pallets" || name === "bags" || name === "tareWeight" || name === "grossWeight") {
       const numValue = parseFloat(value) || 0;
       
-      // Update tare weight if bags change
       if (name === "bags") {
         const newTareWeight = numValue > 0 ? 25.7 + (numValue * 0.125) : 25.7;
         setDetailData({ 
@@ -294,7 +291,6 @@ const ShipmentDetails = () => {
     bags: 0,
   });
 
-  // Mock shipment data
   const shipment = {
     id: id || "1",
     carrier: "FedEx",
@@ -361,6 +357,18 @@ const ShipmentDetails = () => {
     setTimeout(() => {
       navigate("/");
     }, 1500);
+  };
+
+  const { generatePreAlertPDF, generateCMRPDF, loading: pdfLoading } = usePDF();
+
+  const handleGeneratePreAlertPDF = async () => {
+    if (!id) return;
+    await generatePreAlertPDF(id);
+  };
+  
+  const handleGenerateCMRPDF = async () => {
+    if (!id) return;
+    await generateCMRPDF(id);
   };
 
   return (
@@ -573,6 +581,39 @@ const ShipmentDetails = () => {
                 <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
                   <FilePlus className="h-6 w-6 mb-2" />
                   <span>Generate CMR PDF</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {shipment.status === 'completed' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents</CardTitle>
+              <CardDescription>
+                Generated documents for this shipment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-6 px-6 flex flex-col items-center gap-2"
+                  onClick={handleGeneratePreAlertPDF}
+                  disabled={pdfLoading}
+                >
+                  <FileText className="h-8 w-8" />
+                  <span>Pre-Alert PDF</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-auto py-6 px-6 flex flex-col items-center gap-2"
+                  onClick={handleGenerateCMRPDF}
+                  disabled={pdfLoading}
+                >
+                  <Clipboard className="h-8 w-8" />
+                  <span>CMR PDF</span>
                 </Button>
               </div>
             </CardContent>

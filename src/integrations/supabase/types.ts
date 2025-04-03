@@ -9,16 +9,496 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          shipment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          shipment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          shipment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carriers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          created_at: string
+          id: string
+          is_asendia: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_asendia?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_asendia?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      doe: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eco_formats: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      formats: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          service_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          service_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          service_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formats_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      prior_formats: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      s3c_formats: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipment_details: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          dispatch_number: string | null
+          doe_id: string | null
+          eco_format_id: string | null
+          format_id: string | null
+          gross_weight: number
+          id: string
+          net_weight: number | null
+          number_of_bags: number
+          number_of_pallets: number
+          prior_format_id: string | null
+          s3c_format_id: string | null
+          service_id: string | null
+          shipment_id: string
+          tare_weight: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          dispatch_number?: string | null
+          doe_id?: string | null
+          eco_format_id?: string | null
+          format_id?: string | null
+          gross_weight: number
+          id?: string
+          net_weight?: number | null
+          number_of_bags?: number
+          number_of_pallets?: number
+          prior_format_id?: string | null
+          s3c_format_id?: string | null
+          service_id?: string | null
+          shipment_id: string
+          tare_weight?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          dispatch_number?: string | null
+          doe_id?: string | null
+          eco_format_id?: string | null
+          format_id?: string | null
+          gross_weight?: number
+          id?: string
+          net_weight?: number | null
+          number_of_bags?: number
+          number_of_pallets?: number
+          prior_format_id?: string | null
+          s3c_format_id?: string | null
+          service_id?: string | null
+          shipment_id?: string
+          tare_weight?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_details_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_doe_id_fkey"
+            columns: ["doe_id"]
+            isOneToOne: false
+            referencedRelation: "doe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_eco_format_id_fkey"
+            columns: ["eco_format_id"]
+            isOneToOne: false
+            referencedRelation: "eco_formats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "formats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_prior_format_id_fkey"
+            columns: ["prior_format_id"]
+            isOneToOne: false
+            referencedRelation: "prior_formats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_s3c_format_id_fkey"
+            columns: ["s3c_format_id"]
+            isOneToOne: false
+            referencedRelation: "s3c_formats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_details_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          arrival_date: string
+          carrier_id: string | null
+          created_at: string
+          created_by: string
+          departure_date: string
+          driver_name: string
+          id: string
+          seal_no: string | null
+          status: string
+          subcarrier_id: string | null
+          trailer_reg_no: string | null
+          truck_reg_no: string | null
+          updated_at: string
+        }
+        Insert: {
+          arrival_date: string
+          carrier_id?: string | null
+          created_at?: string
+          created_by: string
+          departure_date: string
+          driver_name: string
+          id?: string
+          seal_no?: string | null
+          status?: string
+          subcarrier_id?: string | null
+          trailer_reg_no?: string | null
+          truck_reg_no?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arrival_date?: string
+          carrier_id?: string | null
+          created_at?: string
+          created_by?: string
+          departure_date?: string
+          driver_name?: string
+          id?: string
+          seal_no?: string | null
+          status?: string
+          subcarrier_id?: string | null
+          trailer_reg_no?: string | null
+          truck_reg_no?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_subcarrier_id_fkey"
+            columns: ["subcarrier_id"]
+            isOneToOne: false
+            referencedRelation: "subcarriers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcarriers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          user_id: string
+          required_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "user"
     }
     CompositeTypes: {
       [_ in never]: never

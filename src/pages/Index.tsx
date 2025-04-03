@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,62 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, TrendingUp, Truck, Package } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
-// Mock data for shipments
-const mockShipments = [
-  {
-    id: "1",
-    carrier: "FedEx",
-    subcarrier: "Express",
-    driverName: "John Doe",
-    departureDate: "2023-04-01",
-    arrivalDate: "2023-04-02",
-    status: "pending",
-    sealNo: "SL12345",
-    truckRegNo: "TR5678",
-    trailerRegNo: "TL9012",
-    createdAt: "2023-03-31",
-  },
-  {
-    id: "2",
-    carrier: "UPS",
-    subcarrier: "Ground",
-    driverName: "Jane Smith",
-    departureDate: "2023-04-02",
-    arrivalDate: "2023-04-03",
-    status: "pending",
-    sealNo: "SL67890",
-    truckRegNo: "TR1234",
-    trailerRegNo: "TL5678",
-    createdAt: "2023-04-01",
-  },
-  {
-    id: "3",
-    carrier: "DHL",
-    subcarrier: "International",
-    driverName: "Bob Johnson",
-    departureDate: "2023-03-29",
-    arrivalDate: "2023-03-30",
-    status: "completed",
-    sealNo: "SL54321",
-    truckRegNo: "TR9876",
-    trailerRegNo: "TL5432",
-    createdAt: "2023-03-28",
-  },
-  {
-    id: "4",
-    carrier: "Amazon",
-    subcarrier: "Logistics",
-    driverName: "Sarah Wilson",
-    departureDate: "2023-03-30",
-    arrivalDate: "2023-03-31",
-    status: "completed",
-    sealNo: "SL13579",
-    truckRegNo: "TR2468",
-    trailerRegNo: "TL1357",
-    createdAt: "2023-03-29",
-  },
-];
+interface Shipment {
+  id: string;
+  driver_name: string;
+  departure_date: string;
+  arrival_date: string;
+  status: string;
+  seal_no: string;
+  truck_reg_no: string;
+  trailer_reg_no: string;
+  created_at: string;
+  carrier: { name: string } | null;
+  subcarrier: { name: string } | null;
+}
 
 const StatCard = ({ title, value, icon, trend }: { title: string, value: string, icon: React.ReactNode, trend?: string }) => (
   <Card>
@@ -86,10 +47,12 @@ const StatCard = ({ title, value, icon, trend }: { title: string, value: string,
   </Card>
 );
 
-const ShipmentCard = ({ shipment }: { shipment: any }) => (
+const ShipmentCard = ({ shipment }: { shipment: Shipment }) => (
   <div className="swift-card">
     <div className="flex justify-between">
-      <h3 className="font-semibold text-lg">{shipment.carrier} - {shipment.subcarrier}</h3>
+      <h3 className="font-semibold text-lg">
+        {shipment.carrier?.name || "N/A"} - {shipment.subcarrier?.name || "N/A"}
+      </h3>
       <span className={`text-sm px-2 py-1 rounded-full ${
         shipment.status === "pending" 
           ? "bg-amber-100 text-amber-800" 
@@ -99,9 +62,9 @@ const ShipmentCard = ({ shipment }: { shipment: any }) => (
       </span>
     </div>
     <div className="mt-2 text-sm text-gray-600">
-      <p>Driver: {shipment.driverName}</p>
-      <p>Departure: {new Date(shipment.departureDate).toLocaleDateString()}</p>
-      <p>Arrival: {new Date(shipment.arrivalDate).toLocaleDateString()}</p>
+      <p>Driver: {shipment.driver_name}</p>
+      <p>Departure: {new Date(shipment.departure_date).toLocaleDateString()}</p>
+      <p>Arrival: {new Date(shipment.arrival_date).toLocaleDateString()}</p>
     </div>
     <div className="mt-4 flex justify-end">
       <Link to={`/shipments/${shipment.id}`}>
@@ -113,14 +76,81 @@ const ShipmentCard = ({ shipment }: { shipment: any }) => (
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
   
-  const pendingShipments = mockShipments.filter(
+  useEffect(() => {
+    const fetchShipments = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('shipments')
+          .select(`
+            id,
+            driver_name,
+            departure_date,
+            arrival_date,
+            status,
+            seal_no,
+            truck_reg_no,
+            trailer_reg_no,
+            created_at,
+            carrier:carrier_id (name),
+            subcarrier:subcarrier_id (name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setShipments(data || []);
+      } catch (error) {
+        console.error('Error fetching shipments:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load shipments. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchShipments();
+    }
+  }, [user, toast]);
+  
+  const pendingShipments = shipments.filter(
     (shipment) => shipment.status === "pending"
   );
   
-  const completedShipments = mockShipments.filter(
+  const completedShipments = shipments.filter(
     (shipment) => shipment.status === "completed"
   );
+
+  const filteredPendingShipments = pendingShipments.filter((shipment) => {
+    if (!searchTerm) return true;
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      shipment.driver_name.toLowerCase().includes(searchTermLower) ||
+      (shipment.carrier?.name.toLowerCase().includes(searchTermLower)) ||
+      (shipment.subcarrier?.name.toLowerCase().includes(searchTermLower))
+    );
+  });
+
+  const filteredCompletedShipments = completedShipments.filter((shipment) => {
+    if (!searchTerm) return true;
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      shipment.driver_name.toLowerCase().includes(searchTermLower) ||
+      (shipment.carrier?.name.toLowerCase().includes(searchTermLower)) ||
+      (shipment.subcarrier?.name.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   return (
     <AppLayout>
@@ -187,9 +217,13 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
-            {pendingShipments.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filteredPendingShipments.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingShipments.map((shipment) => (
+                {filteredPendingShipments.map((shipment) => (
                   <ShipmentCard key={shipment.id} shipment={shipment} />
                 ))}
               </div>
@@ -204,9 +238,13 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            {completedShipments.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filteredCompletedShipments.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedShipments.map((shipment) => (
+                {filteredCompletedShipments.map((shipment) => (
                   <ShipmentCard key={shipment.id} shipment={shipment} />
                 ))}
               </div>
