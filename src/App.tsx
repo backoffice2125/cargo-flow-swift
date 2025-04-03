@@ -15,10 +15,10 @@ import DropdownManagement from '@/pages/DropdownManagement';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
-      <PDFProvider>
-        <AuthProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
+        <PDFProvider>
+          <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
@@ -44,11 +44,11 @@ function App() {
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<Navigate to="/404" />} />
             </Routes>
-          </BrowserRouter>
-          <Toaster />
-        </AuthProvider>
-      </PDFProvider>
-    </ThemeProvider>
+            <Toaster />
+          </AuthProvider>
+        </PDFProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 
