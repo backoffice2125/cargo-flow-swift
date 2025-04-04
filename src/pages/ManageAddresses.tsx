@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +60,6 @@ const ManageAddresses = () => {
       
       setLoading(true);
       try {
-        // Use the type-safe function to access address_settings
         const { data, error } = await getAddressSettingsTable()
           .select('*')
           .limit(1);
@@ -69,7 +67,7 @@ const ManageAddresses = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          const addresses = data[0];
+          const addresses = data[0] as AddressSettings;
           form.reset({
             sender_name: addresses.sender_name || "",
             sender_address: addresses.sender_address || "",
@@ -111,7 +109,6 @@ const ManageAddresses = () => {
     
     setLoading(true);
     try {
-      // Use the type-safe function to access address_settings
       const { data: existingData, error: fetchError } = await getAddressSettingsTable()
         .select('id')
         .limit(1);
