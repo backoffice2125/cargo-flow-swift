@@ -28,11 +28,45 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface DropdownItem {
+// Define more specific types for each dropdown item type
+interface BaseDropdownItem {
   id: string;
   name: string;
-  service_id?: string;
+  created_at: string;
+  updated_at: string;
 }
+
+interface CarrierItem extends BaseDropdownItem {}
+interface SubcarrierItem extends BaseDropdownItem {}
+interface ServiceItem extends BaseDropdownItem {}
+
+interface CustomerItem extends BaseDropdownItem {
+  is_asendia: boolean;
+}
+
+interface FormatItem extends BaseDropdownItem {
+  service_id: string | null;
+  service?: {
+    name: string;
+  };
+}
+
+interface DoeItem extends BaseDropdownItem {}
+interface PriorFormatItem extends BaseDropdownItem {}
+interface EcoFormatItem extends BaseDropdownItem {}
+interface S3cFormatItem extends BaseDropdownItem {}
+
+// Union type for all possible item types
+type DropdownItem = 
+  | CarrierItem 
+  | SubcarrierItem 
+  | CustomerItem 
+  | ServiceItem 
+  | FormatItem 
+  | DoeItem 
+  | PriorFormatItem 
+  | EcoFormatItem 
+  | S3cFormatItem;
 
 interface Service {
   id: string;
@@ -103,32 +137,49 @@ const DropdownManagement = () => {
       
       setLoading(true);
       try {
-        let query = supabase.from(selectedType).select('*');
-        
-        if (selectedType === 'formats') {
-          // For formats, we need to join with services
-          query = supabase.from(selectedType).select('*, service:service_id(name)');
-          
-          // Also fetch services for the dropdown
-          const { data: servicesData, error: servicesError } = await supabase
-            .from('services')
-            .select('id, name')
-            .order('name');
+        // Handle each dropdown type separately to ensure proper typing
+        switch (selectedType) {
+          case 'formats': {
+            const { data, error } = await supabase
+              .from('formats')
+              .select('*, service:service_id(name)')
+              .order('name');
             
-          if (servicesError) throw servicesError;
-          setServices(servicesData || []);
-        } else if (selectedType === 'customers') {
-          // For customers, we need to include the is_asendia field
-          query = supabase.from(selectedType).select('id, name, is_asendia');
+            if (error) throw error;
+            setItems(data || []);
+            
+            // Fetch services for the dropdown
+            const { data: servicesData, error: servicesError } = await supabase
+              .from('services')
+              .select('id, name')
+              .order('name');
+              
+            if (servicesError) throw servicesError;
+            setServices(servicesData || []);
+            break;
+          }
+          case 'customers': {
+            const { data, error } = await supabase
+              .from('customers')
+              .select('id, name, is_asendia, created_at, updated_at')
+              .order('name');
+            
+            if (error) throw error;
+            setItems(data || []);
+            break;
+          }
+          default: {
+            // For other tables, they all have the same structure
+            const { data, error } = await supabase
+              .from(selectedType)
+              .select('*')
+              .order('name');
+            
+            if (error) throw error;
+            setItems(data || []);
+            break;
+          }
         }
-        
-        // Add ordering
-        query = query.order('name');
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        setItems(data || []);
       } catch (error) {
         console.error(`Error fetching ${selectedType}:`, error);
         toast({
@@ -163,11 +214,11 @@ const DropdownManagement = () => {
     setEditingItemId(item.id);
     
     if (selectedType === 'customers' && 'is_asendia' in item) {
-      setIsAsendiaCustomer(item.is_asendia as boolean);
+      setIsAsendiaCustomer(item.is_asendia);
     }
     
-    if (selectedType === 'formats' && item.service_id) {
-      setServiceId(item.service_id);
+    if (selectedType === 'formats' && 'service_id' in item) {
+      setServiceId(item.service_id || '');
     }
     
     setShowForm(true);
@@ -219,18 +270,19 @@ const DropdownManagement = () => {
     }
     
     try {
+      // Prepare data based on the selected type
+      let newData: Record<string, any> = { name: itemName };
+      
+      if (selectedType === 'customers') {
+        newData.is_asendia = isAsendiaCustomer;
+      }
+      
+      if (selectedType === 'formats') {
+        newData.service_id = serviceId;
+      }
+      
       if (formMode === 'create') {
         // Create new item
-        let newData: any = { name: itemName };
-        
-        if (selectedType === 'customers') {
-          newData.is_asendia = isAsendiaCustomer;
-        }
-        
-        if (selectedType === 'formats') {
-          newData.service_id = serviceId;
-        }
-        
         const { data, error } = await supabase
           .from(selectedType)
           .insert([newData])
@@ -249,19 +301,9 @@ const DropdownManagement = () => {
         });
       } else if (formMode === 'edit' && editingItemId) {
         // Update existing item
-        let updateData: any = { name: itemName };
-        
-        if (selectedType === 'customers') {
-          updateData.is_asendia = isAsendiaCustomer;
-        }
-        
-        if (selectedType === 'formats') {
-          updateData.service_id = serviceId;
-        }
-        
         const { error } = await supabase
           .from(selectedType)
-          .update(updateData)
+          .update(newData)
           .eq('id', editingItemId);
           
         if (error) throw error;
@@ -269,7 +311,19 @@ const DropdownManagement = () => {
         // Update local state
         const updatedItems = items.map(item => {
           if (item.id === editingItemId) {
-            return { ...item, name: itemName, ...(selectedType === 'customers' ? { is_asendia: isAsendiaCustomer } : {}), ...(selectedType === 'formats' ? { service_id: serviceId } : {}) };
+            // Create a new updated item preserving the type
+            const updatedItem = { ...item, name: itemName };
+            
+            // Update specific fields based on dropdown type
+            if (selectedType === 'customers' && 'is_asendia' in updatedItem) {
+              updatedItem.is_asendia = isAsendiaCustomer;
+            }
+            
+            if (selectedType === 'formats' && 'service_id' in updatedItem) {
+              updatedItem.service_id = serviceId;
+            }
+            
+            return updatedItem;
           }
           return item;
         });
@@ -299,6 +353,13 @@ const DropdownManagement = () => {
   if (!isAdmin) {
     return null;
   }
+  
+  // Helper function to safely check properties
+  const isCustomer = (item: DropdownItem): item is CustomerItem => 
+    selectedType === 'customers';
+    
+  const isFormat = (item: DropdownItem): item is FormatItem => 
+    selectedType === 'formats';
   
   return (
     <AppLayout>
@@ -403,12 +464,12 @@ const DropdownManagement = () => {
                       <TableCell>{item.name}</TableCell>
                       {selectedType === 'customers' && (
                         <TableCell>
-                          {(item as any).is_asendia ? "Yes" : "No"}
+                          {isCustomer(item) ? (item.is_asendia ? "Yes" : "No") : "N/A"}
                         </TableCell>
                       )}
                       {selectedType === 'formats' && (
                         <TableCell>
-                          {(item as any).service?.name || "-"}
+                          {isFormat(item) && item.service ? item.service.name : "-"}
                         </TableCell>
                       )}
                       <TableCell className="text-right">
