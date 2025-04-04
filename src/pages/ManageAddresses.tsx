@@ -123,9 +123,21 @@ const ManageAddresses = () => {
           .update(data)
           .eq('id', existingData[0].id);
       } else {
-        // Insert new record
-        result = await getAddressSettingsTable()
-          .insert([data]);
+        // Insert new record - Ensure all required fields are present
+        const addressData: AddressSettings = {
+          sender_name: data.sender_name,
+          sender_address: data.sender_address,
+          sender_city: data.sender_city,
+          sender_country: data.sender_country,
+          sender_postal_code: data.sender_postal_code,
+          receiver_name: data.receiver_name,
+          receiver_address: data.receiver_address,
+          receiver_city: data.receiver_city,
+          receiver_country: data.receiver_country,
+          receiver_postal_code: data.receiver_postal_code,
+        };
+        
+        result = await getAddressSettingsTable().insert(addressData);
       }
       
       if (result.error) throw result.error;
