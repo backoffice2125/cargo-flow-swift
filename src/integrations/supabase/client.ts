@@ -37,6 +37,5 @@ export interface AddressSettings {
 
 // Type-safe function to access address_settings table
 export const getAddressSettingsTable = () => {
-  // Use a more direct approach that bypasses strict typing temporarily
   return supabase.from('address_settings');
 };
