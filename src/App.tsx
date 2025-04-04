@@ -12,6 +12,8 @@ import NotFound from '@/pages/NotFound';
 import ShipmentNew from '@/pages/ShipmentNew';
 import ShipmentDetails from '@/pages/ShipmentDetails';
 import DropdownManagement from '@/pages/DropdownManagement';
+import ManageAddresses from '@/pages/ManageAddresses';
+import NotificationsPage from '@/pages/NotificationsPage';
 
 function App() {
   return (
@@ -39,6 +41,16 @@ function App() {
               <Route path="/manage/dropdowns" element={
                 <ProtectedRoute>
                   <DropdownManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/manage/addresses" element={
+                <ProtectedRoute>
+                  <ManageAddresses />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               } />
               <Route path="/404" element={<NotFound />} />
