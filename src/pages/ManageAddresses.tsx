@@ -10,7 +10,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, AddressSettings, getAddressSettingsTable } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,8 +61,8 @@ const ManageAddresses = () => {
       
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('address_settings')
+        // Use the type-safe function to access address_settings
+        const { data, error } = await getAddressSettingsTable()
           .select('*')
           .limit(1);
           
@@ -111,8 +111,8 @@ const ManageAddresses = () => {
     
     setLoading(true);
     try {
-      const { data: existingData, error: fetchError } = await supabase
-        .from('address_settings')
+      // Use the type-safe function to access address_settings
+      const { data: existingData, error: fetchError } = await getAddressSettingsTable()
         .select('id')
         .limit(1);
         
@@ -122,14 +122,12 @@ const ManageAddresses = () => {
       
       if (existingData && existingData.length > 0) {
         // Update existing record
-        result = await supabase
-          .from('address_settings')
+        result = await getAddressSettingsTable()
           .update(data)
           .eq('id', existingData[0].id);
       } else {
         // Insert new record
-        result = await supabase
-          .from('address_settings')
+        result = await getAddressSettingsTable()
           .insert([data]);
       }
       

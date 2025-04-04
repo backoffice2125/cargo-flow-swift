@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      address_settings: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_address: string
+          receiver_city: string
+          receiver_country: string
+          receiver_name: string
+          receiver_postal_code: string
+          sender_address: string
+          sender_city: string
+          sender_country: string
+          sender_name: string
+          sender_postal_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_address: string
+          receiver_city: string
+          receiver_country: string
+          receiver_name: string
+          receiver_postal_code: string
+          sender_address: string
+          sender_city: string
+          sender_country: string
+          sender_name: string
+          sender_postal_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_address?: string
+          receiver_city?: string
+          receiver_country?: string
+          receiver_name?: string
+          receiver_postal_code?: string
+          sender_address?: string
+          sender_city?: string
+          sender_country?: string
+          sender_name?: string
+          sender_postal_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string

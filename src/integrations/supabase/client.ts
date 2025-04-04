@@ -17,3 +17,25 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Types for address_settings table (until types.ts gets updated)
+export interface AddressSettings {
+  id?: string;
+  sender_name: string;
+  sender_address: string;
+  sender_city: string;
+  sender_country: string;
+  sender_postal_code: string;
+  receiver_name: string;
+  receiver_address: string;
+  receiver_city: string;
+  receiver_country: string;
+  receiver_postal_code: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Type-safe function to access address_settings table
+export const getAddressSettingsTable = () => {
+  return supabase.from('address_settings') as unknown as ReturnType<typeof supabase.from<'address_settings', AddressSettings>>;
+};
