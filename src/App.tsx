@@ -14,6 +14,7 @@ import ShipmentDetails from '@/pages/ShipmentDetails';
 import DropdownManagement from '@/pages/DropdownManagement';
 import ManageAddresses from '@/pages/ManageAddresses';
 import NotificationsPage from '@/pages/NotificationsPage';
+import AddressSettingsPage from '@/pages/AddressSettings';
 
 function App() {
   return (
@@ -46,6 +47,11 @@ function App() {
               <Route path="/manage/addresses" element={
                 <ProtectedRoute>
                   <ManageAddresses />
+                </ProtectedRoute>
+              } />
+              <Route path="/address-settings" element={
+                <ProtectedRoute>
+                  <AddressSettingsPage />
                 </ProtectedRoute>
               } />
               <Route path="/notifications" element={
