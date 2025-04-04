@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -274,7 +275,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       if (selectedServiceObj.name !== 'S3C') {
         setFormData(prev => ({ ...prev, s3c_format_id: "" }));
       }
-      if (selectedServiceObj.name !== 'Standard') {
+      if (selectedServiceObj.name !== 'Standard' && selectedServiceObj.name !== 'Other') {
         setFormData(prev => ({ ...prev, format_id: "" }));
       }
     } else {
@@ -353,7 +354,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       return;
     }
     
-    if (selectedService === 'Standard' && !formData.format_id) {
+    if ((selectedService === 'Standard' || selectedService === 'Other') && !formData.format_id) {
       toast({
         title: "Missing required field",
         description: "Please select a Format",
@@ -365,13 +366,22 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     setLoading(true);
     
     try {
+      // Prepare data for insertion/update - filter out empty string values for UUID fields
+      const dataToSave = {
+        ...formData,
+        shipment_id: shipmentId,
+        // Set null for empty UUID strings
+        format_id: formData.format_id || null,
+        prior_format_id: formData.prior_format_id || null,
+        eco_format_id: formData.eco_format_id || null,
+        s3c_format_id: formData.s3c_format_id || null,
+        doe_id: formData.doe_id || null
+      };
+      
       if (isEditMode && detailId) {
         const { error } = await supabase
           .from('shipment_details')
-          .update({
-            ...formData,
-            shipment_id: shipmentId
-          })
+          .update(dataToSave)
           .eq('id', detailId);
           
         if (error) {
@@ -386,12 +396,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       } else {
         const { error } = await supabase
           .from('shipment_details')
-          .insert([
-            {
-              ...formData,
-              shipment_id: shipmentId
-            }
-          ]);
+          .insert([dataToSave]);
           
         if (error) {
           console.error('Insert error:', error);
@@ -470,7 +475,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               </Select>
             </div>
             
-            {selectedService === 'Standard' && (
+            {(selectedService === 'Standard' || selectedService === 'Other') && (
               <div className="space-y-2">
                 <Label htmlFor="format_id">Format*</Label>
                 <Select 
