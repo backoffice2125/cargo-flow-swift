@@ -68,6 +68,17 @@ type DropdownItem =
   | EcoFormatItem 
   | S3cFormatItem;
 
+// Define types for new item data based on dropdown type
+type CarrierInsert = { name: string };
+type SubcarrierInsert = { name: string };
+type ServiceInsert = { name: string };
+type CustomerInsert = { name: string; is_asendia: boolean };
+type FormatInsert = { name: string; service_id: string };
+type DoeInsert = { name: string };
+type PriorFormatInsert = { name: string };
+type EcoFormatInsert = { name: string };
+type S3cFormatInsert = { name: string };
+
 interface Service {
   id: string;
   name: string;
@@ -213,11 +224,11 @@ const DropdownManagement = () => {
     setItemName(item.name);
     setEditingItemId(item.id);
     
-    if (selectedType === 'customers' && 'is_asendia' in item) {
+    if ('is_asendia' in item) {
       setIsAsendiaCustomer(item.is_asendia);
     }
     
-    if (selectedType === 'formats' && 'service_id' in item) {
+    if ('service_id' in item) {
       setServiceId(item.service_id || '');
     }
     
@@ -270,29 +281,100 @@ const DropdownManagement = () => {
     }
     
     try {
-      // Prepare data based on the selected type
-      let newData: Record<string, any> = { name: itemName };
+      // Prepare data based on the selected type with proper typing
+      let newData: 
+        | CarrierInsert
+        | SubcarrierInsert
+        | CustomerInsert
+        | ServiceInsert
+        | FormatInsert
+        | DoeInsert
+        | PriorFormatInsert
+        | EcoFormatInsert
+        | S3cFormatInsert;
       
+      // Set the base data (name is common to all types)
+      newData = { name: itemName } as any;
+      
+      // Add type-specific fields
       if (selectedType === 'customers') {
-        newData.is_asendia = isAsendiaCustomer;
+        (newData as CustomerInsert).is_asendia = isAsendiaCustomer;
       }
       
       if (selectedType === 'formats') {
-        newData.service_id = serviceId;
+        (newData as FormatInsert).service_id = serviceId;
       }
       
       if (formMode === 'create') {
-        // Create new item
-        const { data, error } = await supabase
-          .from(selectedType)
-          .insert([newData])
-          .select();
-          
+        // Type-safe insert based on the selected dropdown type
+        let response;
+        
+        switch (selectedType) {
+          case 'carriers':
+            response = await supabase
+              .from('carriers')
+              .insert(newData as CarrierInsert)
+              .select();
+            break;
+          case 'subcarriers':
+            response = await supabase
+              .from('subcarriers')
+              .insert(newData as SubcarrierInsert)
+              .select();
+            break;
+          case 'customers':
+            response = await supabase
+              .from('customers')
+              .insert(newData as CustomerInsert)
+              .select();
+            break;
+          case 'services':
+            response = await supabase
+              .from('services')
+              .insert(newData as ServiceInsert)
+              .select();
+            break;
+          case 'formats':
+            response = await supabase
+              .from('formats')
+              .insert(newData as FormatInsert)
+              .select();
+            break;
+          case 'prior_formats':
+            response = await supabase
+              .from('prior_formats')
+              .insert(newData as PriorFormatInsert)
+              .select();
+            break;
+          case 'eco_formats':
+            response = await supabase
+              .from('eco_formats')
+              .insert(newData as EcoFormatInsert)
+              .select();
+            break;
+          case 's3c_formats':
+            response = await supabase
+              .from('s3c_formats')
+              .insert(newData as S3cFormatInsert)
+              .select();
+            break;
+          case 'doe':
+            response = await supabase
+              .from('doe')
+              .insert(newData as DoeInsert)
+              .select();
+            break;
+          default:
+            throw new Error(`Unsupported dropdown type: ${selectedType}`);
+        }
+        
+        const { data, error } = response;
+        
         if (error) throw error;
         
         // Update local state
         if (data) {
-          setItems([...items, data[0]]);
+          setItems([...items, data[0] as DropdownItem]);
         }
         
         toast({
@@ -300,19 +382,81 @@ const DropdownManagement = () => {
           description: `${selectedType.slice(0, -1)} added successfully.`,
         });
       } else if (formMode === 'edit' && editingItemId) {
-        // Update existing item
-        const { error } = await supabase
-          .from(selectedType)
-          .update(newData)
-          .eq('id', editingItemId);
-          
+        // Type-safe update based on the selected dropdown type
+        let response;
+        
+        switch (selectedType) {
+          case 'carriers':
+            response = await supabase
+              .from('carriers')
+              .update(newData as CarrierInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'subcarriers':
+            response = await supabase
+              .from('subcarriers')
+              .update(newData as SubcarrierInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'customers':
+            response = await supabase
+              .from('customers')
+              .update(newData as CustomerInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'services':
+            response = await supabase
+              .from('services')
+              .update(newData as ServiceInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'formats':
+            response = await supabase
+              .from('formats')
+              .update(newData as FormatInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'prior_formats':
+            response = await supabase
+              .from('prior_formats')
+              .update(newData as PriorFormatInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'eco_formats':
+            response = await supabase
+              .from('eco_formats')
+              .update(newData as EcoFormatInsert)
+              .eq('id', editingItemId);
+            break;
+          case 's3c_formats':
+            response = await supabase
+              .from('s3c_formats')
+              .update(newData as S3cFormatInsert)
+              .eq('id', editingItemId);
+            break;
+          case 'doe':
+            response = await supabase
+              .from('doe')
+              .update(newData as DoeInsert)
+              .eq('id', editingItemId);
+            break;
+          default:
+            throw new Error(`Unsupported dropdown type: ${selectedType}`);
+        }
+        
+        const { error } = response;
+        
         if (error) throw error;
         
         // Update local state
         const updatedItems = items.map(item => {
           if (item.id === editingItemId) {
             // Create a new updated item preserving the type
-            const updatedItem = { ...item, name: itemName };
+            const updatedItem = { 
+              ...item, 
+              name: itemName,
+              updated_at: new Date().toISOString() 
+            };
             
             // Update specific fields based on dropdown type
             if (selectedType === 'customers' && 'is_asendia' in updatedItem) {
@@ -321,6 +465,17 @@ const DropdownManagement = () => {
             
             if (selectedType === 'formats' && 'service_id' in updatedItem) {
               updatedItem.service_id = serviceId;
+              // Update the service name in the UI if available
+              if (serviceId) {
+                const serviceName = services.find(s => s.id === serviceId)?.name;
+                if (serviceName && updatedItem.service) {
+                  updatedItem.service.name = serviceName;
+                } else {
+                  updatedItem.service = { name: serviceName || '' };
+                }
+              } else {
+                updatedItem.service = undefined;
+              }
             }
             
             return updatedItem;
@@ -356,10 +511,10 @@ const DropdownManagement = () => {
   
   // Helper function to safely check properties
   const isCustomer = (item: DropdownItem): item is CustomerItem => 
-    selectedType === 'customers';
+    'is_asendia' in item;
     
   const isFormat = (item: DropdownItem): item is FormatItem => 
-    selectedType === 'formats';
+    'service_id' in item;
   
   return (
     <AppLayout>
