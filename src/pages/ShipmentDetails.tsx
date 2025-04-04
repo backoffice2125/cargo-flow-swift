@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Plus, Trash, Edit, FilePlus } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
+import { usePDF } from "@/contexts/PDFContext";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -93,7 +93,6 @@ const ShipmentDetails = () => {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [deleteDetailId, setDeleteDetailId] = useState<string | null>(null);
   const [completeAlertOpen, setCompleteAlertOpen] = useState(false);
-  
   const [totals, setTotals] = useState({
     grossWeight: 0,
     tareWeight: 0,
@@ -104,7 +103,8 @@ const ShipmentDetails = () => {
     otherNetWeight: 0
   });
 
-  // Fetch shipment and details data
+  const { generatePreAlertPDF, generateCMRPDF, loading: pdfLoading } = usePDF();
+
   useEffect(() => {
     const fetchShipmentData = async () => {
       if (!id) return;
@@ -112,7 +112,6 @@ const ShipmentDetails = () => {
       setIsLoading(true);
       
       try {
-        // Fetch shipment
         const { data: shipmentData, error: shipmentError } = await supabase
           .from('shipments')
           .select(`
@@ -126,7 +125,6 @@ const ShipmentDetails = () => {
         if (shipmentError) throw shipmentError;
         setShipment(shipmentData);
         
-        // Fetch shipment details
         const { data: detailsData, error: detailsError } = await supabase
           .from('shipment_details')
           .select(`
@@ -154,7 +152,6 @@ const ShipmentDetails = () => {
           variant: "destructive",
         });
         
-        // If shipment not found, navigate back to dashboard
         navigate('/');
       } finally {
         setIsLoading(false);
@@ -163,13 +160,12 @@ const ShipmentDetails = () => {
     
     fetchShipmentData();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('shipment-details-changes')
       .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'shipment_details', filter: `shipment_id=eq.${id}` },
           (payload) => {
-            fetchShipmentData(); // Refresh data on any change
+            fetchShipmentData();
           }
       )
       .subscribe();
@@ -179,7 +175,6 @@ const ShipmentDetails = () => {
     };
   }, [id, navigate, toast]);
 
-  // Calculate totals
   const calculateTotals = (detailsArray: ShipmentDetail[]) => {
     const newTotals = {
       grossWeight: 0,
@@ -198,7 +193,6 @@ const ShipmentDetails = () => {
       newTotals.pallets += detail.number_of_pallets;
       newTotals.bags += detail.number_of_bags;
       
-      // Calculate customer-specific net weights
       if (detail.customer?.is_asendia) {
         newTotals.asendiaNetWeight += detail.net_weight;
       } else {
@@ -240,7 +234,6 @@ const ShipmentDetails = () => {
         description: "Shipment detail has been removed",
       });
       
-      // Update the details array
       setDetails(prev => prev.filter(detail => detail.id !== deleteDetailId));
       calculateTotals(details.filter(detail => detail.id !== deleteDetailId));
     } catch (error) {
@@ -280,12 +273,10 @@ const ShipmentDetails = () => {
         
       if (error) throw error;
       
-      // Update local state
       if (shipment) {
         setShipment({ ...shipment, status: 'completed' });
       }
       
-      // Create audit log
       await supabase
         .from('audit_logs')
         .insert([{
@@ -309,6 +300,16 @@ const ShipmentDetails = () => {
     } finally {
       setCompleteAlertOpen(false);
     }
+  };
+
+  const handleGeneratePreAlertPDF = async () => {
+    if (!id) return;
+    await generatePreAlertPDF(id);
+  };
+
+  const handleGenerateCMRPDF = async () => {
+    if (!id) return;
+    await generateCMRPDF(id);
   };
 
   if (isLoading) {
@@ -576,15 +577,36 @@ const ShipmentDetails = () => {
                     <Card className="bg-muted/30">
                       <CardHeader>
                         <CardTitle className="text-lg">Document Generation</CardTitle>
+                        <CardDescription>
+                          Generate documents for this completed shipment
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
-                            <FilePlus className="h-6 w-6 mb-2" />
+                          <Button 
+                            variant="outline" 
+                            className="h-24 flex flex-col items-center justify-center"
+                            onClick={handleGeneratePreAlertPDF}
+                            disabled={pdfLoading}
+                          >
+                            {pdfLoading ? (
+                              <Loader2 className="h-6 w-6 mb-2 animate-spin" />
+                            ) : (
+                              <FilePlus className="h-6 w-6 mb-2" />
+                            )}
                             <span>Generate Pre-Alert PDF</span>
                           </Button>
-                          <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
-                            <FilePlus className="h-6 w-6 mb-2" />
+                          <Button 
+                            variant="outline" 
+                            className="h-24 flex flex-col items-center justify-center"
+                            onClick={handleGenerateCMRPDF}
+                            disabled={pdfLoading}
+                          >
+                            {pdfLoading ? (
+                              <Loader2 className="h-6 w-6 mb-2 animate-spin" />
+                            ) : (
+                              <FilePlus className="h-6 w-6 mb-2" />
+                            )}
                             <span>Generate CMR PDF</span>
                           </Button>
                         </div>

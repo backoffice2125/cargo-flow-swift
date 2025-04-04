@@ -44,10 +44,24 @@ interface ShipmentDetail {
   created_at: string;
 }
 
+interface AddressSettings {
+  sender_name: string;
+  sender_address: string;
+  sender_city: string;
+  sender_country: string;
+  sender_postal_code: string;
+  receiver_name: string;
+  receiver_address: string;
+  receiver_city: string;
+  receiver_country: string;
+  receiver_postal_code: string;
+}
+
 // Fetch shipment data with all details
 const fetchShipmentData = async (shipmentId: string): Promise<{
   shipment: Shipment | null;
   details: ShipmentDetail[];
+  addressSettings: AddressSettings | null;
 }> => {
   try {
     // Fetch shipment
@@ -96,10 +110,22 @@ const fetchShipmentData = async (shipmentId: string): Promise<{
       .order('created_at', { ascending: true });
       
     if (detailsError) throw detailsError;
+
+    // Fetch address settings
+    const { data: addressData, error: addressError } = await supabase
+      .from('address_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (addressError && addressError.code !== 'PGRST116') { // PGRST116 is "no rows returned" - not a critical error
+      console.warn('Error fetching address settings:', addressError);
+    }
     
     return {
       shipment: shipmentData,
-      details: detailsData || []
+      details: detailsData || [],
+      addressSettings: addressData
     };
   } catch (error) {
     console.error('Error fetching shipment data for PDF:', error);
@@ -109,7 +135,7 @@ const fetchShipmentData = async (shipmentId: string): Promise<{
 
 // Generate Pre-Alert PDF
 export const generatePreAlertPDF = async (shipmentId: string): Promise<string> => {
-  const { shipment, details } = await fetchShipmentData(shipmentId);
+  const { shipment, details, addressSettings } = await fetchShipmentData(shipmentId);
   
   if (!shipment) {
     throw new Error('Shipment not found');
@@ -156,10 +182,12 @@ export const generatePreAlertPDF = async (shipmentId: string): Promise<string> =
   doc.text(`Gross Weight: ${totalGrossWeight.toFixed(2)} kg`, 14, 120);
   doc.text(`Tare Weight: ${totalTareWeight.toFixed(2)} kg`, 14, 125);
   doc.text(`Net Weight: ${totalNetWeight.toFixed(2)} kg`, 14, 130);
+  doc.text(`Asendia Net Weight: ${totalAsendiaNetWeight.toFixed(2)} kg`, 14, 135);
+  doc.text(`Other Customers Net Weight: ${totalOtherNetWeight.toFixed(2)} kg`, 14, 140);
   
   // Add detail table
   doc.setFontSize(12);
-  doc.text('Shipment Details', 14, 145);
+  doc.text('Shipment Details', 14, 155);
   
   // Define the table data
   const tableData = details.map(detail => {
@@ -189,7 +217,7 @@ export const generatePreAlertPDF = async (shipmentId: string): Promise<string> =
   
   // Generate the table
   doc.autoTable({
-    startY: 150,
+    startY: 160,
     head: [['Customer', 'Service', 'Format', 'Pallets', 'Bags', 'Gross Weight', 'Net Weight', 'Dispatch No']],
     body: tableData,
     theme: 'striped',
@@ -203,7 +231,7 @@ export const generatePreAlertPDF = async (shipmentId: string): Promise<string> =
 
 // Generate CMR PDF
 export const generateCMRPDF = async (shipmentId: string): Promise<string> => {
-  const { shipment, details } = await fetchShipmentData(shipmentId);
+  const { shipment, details, addressSettings } = await fetchShipmentData(shipmentId);
   
   if (!shipment) {
     throw new Error('Shipment not found');
@@ -223,31 +251,47 @@ export const generateCMRPDF = async (shipmentId: string): Promise<string> => {
   doc.setFontSize(12);
   doc.text('1. Sender', 14, 45);
   doc.setFontSize(10);
-  doc.text('Swift Logistics Ltd.', 14, 50);
-  doc.text('123 Transport Road', 14, 55);
-  doc.text('London, UK', 14, 60);
+  
+  // Use address settings if available, otherwise use defaults
+  if (addressSettings) {
+    doc.text(addressSettings.sender_name, 14, 50);
+    doc.text(addressSettings.sender_address, 14, 55);
+    doc.text(`${addressSettings.sender_postal_code} ${addressSettings.sender_city}, ${addressSettings.sender_country}`, 14, 60);
+  } else {
+    doc.text('Swift Logistics Ltd.', 14, 50);
+    doc.text('123 Transport Road', 14, 55);
+    doc.text('London, UK', 14, 60);
+  }
   
   // Receiver section
   doc.setFontSize(12);
   doc.text('2. Consignee', 14, 75);
   doc.setFontSize(10);
-  doc.text('Various Recipients', 14, 80);
-  doc.text('As per attached details', 14, 85);
+  
+  // Use address settings if available, otherwise use defaults
+  if (addressSettings) {
+    doc.text(addressSettings.receiver_name, 14, 80);
+    doc.text(addressSettings.receiver_address, 14, 85);
+    doc.text(`${addressSettings.receiver_postal_code} ${addressSettings.receiver_city}, ${addressSettings.receiver_country}`, 14, 90);
+  } else {
+    doc.text('Various Recipients', 14, 80);
+    doc.text('As per attached details', 14, 85);
+  }
   
   // Carrier section
   doc.setFontSize(12);
-  doc.text('3. Carrier', 14, 100);
+  doc.text('3. Carrier', 14, 105);
   doc.setFontSize(10);
-  doc.text(`${shipment.carrier?.name || 'N/A'} - ${shipment.subcarrier?.name || 'N/A'}`, 14, 105);
-  doc.text(`Driver: ${shipment.driver_name}`, 14, 110);
+  doc.text(`${shipment.carrier?.name || 'N/A'} - ${shipment.subcarrier?.name || 'N/A'}`, 14, 110);
+  doc.text(`Driver: ${shipment.driver_name}`, 14, 115);
   
   // Vehicle details
   doc.setFontSize(12);
-  doc.text('4. Vehicle Details', 14, 125);
+  doc.text('4. Vehicle Details', 14, 130);
   doc.setFontSize(10);
-  doc.text(`Truck Reg No: ${shipment.truck_reg_no || 'N/A'}`, 14, 130);
-  doc.text(`Trailer Reg No: ${shipment.trailer_reg_no || 'N/A'}`, 14, 135);
-  doc.text(`Seal No: ${shipment.seal_no || 'N/A'}`, 14, 140);
+  doc.text(`Truck Reg No: ${shipment.truck_reg_no || 'N/A'}`, 14, 135);
+  doc.text(`Trailer Reg No: ${shipment.trailer_reg_no || 'N/A'}`, 14, 140);
+  doc.text(`Seal No: ${shipment.seal_no || 'N/A'}`, 14, 145);
   
   // Calculate summary data
   const totalPallets = details.reduce((sum, detail) => sum + detail.number_of_pallets, 0);
@@ -258,34 +302,34 @@ export const generateCMRPDF = async (shipmentId: string): Promise<string> => {
   
   // Goods summary
   doc.setFontSize(12);
-  doc.text('5. Goods Summary', 14, 155);
+  doc.text('5. Goods Summary', 14, 160);
   doc.setFontSize(10);
-  doc.text(`Total Pallets: ${totalPallets}`, 14, 160);
-  doc.text(`Total Bags: ${totalBags}`, 14, 165);
-  doc.text(`Gross Weight: ${totalGrossWeight.toFixed(2)} kg`, 14, 170);
-  doc.text(`Tare Weight: ${totalTareWeight.toFixed(2)} kg`, 14, 175);
-  doc.text(`Net Weight: ${totalNetWeight.toFixed(2)} kg`, 14, 180);
+  doc.text(`Total Pallets: ${totalPallets}`, 14, 165);
+  doc.text(`Total Bags: ${totalBags}`, 14, 170);
+  doc.text(`Gross Weight: ${totalGrossWeight.toFixed(2)} kg`, 14, 175);
+  doc.text(`Tare Weight: ${totalTareWeight.toFixed(2)} kg`, 14, 180);
+  doc.text(`Net Weight: ${totalNetWeight.toFixed(2)} kg`, 14, 185);
   
   // Date and place
   doc.setFontSize(12);
-  doc.text('6. Date & Place', 14, 195);
+  doc.text('6. Date & Place', 14, 200);
   doc.setFontSize(10);
-  doc.text(`Departure: ${new Date(shipment.departure_date).toLocaleDateString()}`, 14, 200);
-  doc.text(`Expected Arrival: ${new Date(shipment.arrival_date).toLocaleDateString()}`, 14, 205);
+  doc.text(`Departure: ${new Date(shipment.departure_date).toLocaleDateString()}`, 14, 205);
+  doc.text(`Expected Arrival: ${new Date(shipment.arrival_date).toLocaleDateString()}`, 14, 210);
   
   // Signature fields
   doc.setFontSize(12);
-  doc.text('7. Signatures', 14, 220);
+  doc.text('7. Signatures', 14, 225);
   
   // Add signature boxes
-  doc.rect(14, 225, 60, 25); // Sender signature
-  doc.rect(84, 225, 60, 25); // Carrier signature
-  doc.rect(154, 225, 60, 25); // Consignee signature
+  doc.rect(14, 230, 60, 25); // Sender signature
+  doc.rect(84, 230, 60, 25); // Carrier signature
+  doc.rect(154, 230, 60, 25); // Consignee signature
   
   doc.setFontSize(8);
-  doc.text('Sender', 44, 255);
-  doc.text('Carrier', 114, 255);
-  doc.text('Consignee', 184, 255);
+  doc.text('Sender', 44, 260);
+  doc.text('Carrier', 114, 260);
+  doc.text('Consignee', 184, 260);
   
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
