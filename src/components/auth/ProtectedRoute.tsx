@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { MobileNavProvider } from '@/hooks/use-mobile';
 
@@ -10,6 +10,20 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if this is the first load of the application
+    const isFirstLoad = sessionStorage.getItem('appOpened') !== 'true';
+    
+    if (isFirstLoad && !loading) {
+      // Mark that the app has been opened in this session
+      sessionStorage.setItem('appOpened', 'true');
+      
+      // Redirect to login page on first load regardless of auth status
+      navigate('/login');
+    }
+  }, [loading, navigate]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">

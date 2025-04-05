@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,8 @@ const Login = () => {
   const { signIn, signUp, loading, user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
+  // Remove auto-redirect to home when user is detected
+  // We will rely on successful login/signup to redirect instead
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

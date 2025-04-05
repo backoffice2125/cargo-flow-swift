@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster";
@@ -17,6 +17,11 @@ import NotificationsPage from '@/pages/NotificationsPage';
 import AddressSettingsPage from '@/pages/AddressSettings';
 
 function App() {
+  // Always clear session storage first-load flag when the app component mounts
+  useEffect(() => {
+    sessionStorage.removeItem('appOpened');
+  }, []);
+  
   return (
     <BrowserRouter>
       <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
