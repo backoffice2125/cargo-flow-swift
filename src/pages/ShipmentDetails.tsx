@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
+import ShipmentDetailItem from "@/components/shipments/ShipmentDetailItem";
 import { usePDF } from "@/contexts/PDFContext";
 import { 
   AlertDialog, 
@@ -98,6 +98,7 @@ const ShipmentDetails = () => {
   const [deleteShipmentAlertOpen, setDeleteShipmentAlertOpen] = useState(false);
   const [editShipmentMode, setEditShipmentMode] = useState(false);
   const [editedShipment, setEditedShipment] = useState<Partial<Shipment>>({});
+  const [expandedDetails, setExpandedDetails] = useState<{ [key: string]: boolean }>({});
   
   const [totals, setTotals] = useState({
     grossWeight: 0,
@@ -154,6 +155,12 @@ const ShipmentDetails = () => {
           
         if (detailsError) throw detailsError;
         setDetails(detailsData || []);
+        
+        const initialExpanded: { [key: string]: boolean } = {};
+        detailsData?.forEach(detail => {
+          initialExpanded[detail.id] = true;
+        });
+        setExpandedDetails(initialExpanded);
         
         calculateTotals(detailsData || []);
       } catch (error) {
@@ -453,6 +460,13 @@ const ShipmentDetails = () => {
     setEditedShipment(prev => ({ ...prev, [name]: value }));
   };
 
+  const toggleDetailExpand = (detailId: string) => {
+    setExpandedDetails(prev => ({
+      ...prev,
+      [detailId]: !prev[detailId]
+    }));
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -706,26 +720,41 @@ const ShipmentDetails = () => {
             ) : details.length > 0 ? (
               <div className="space-y-4">
                 {details.map((detail) => (
-                  <div key={detail.id} className="p-4 border rounded-md bg-card">
-                    <div className="flex justify-between mb-2">
-                      <h3 className="font-medium">
-                        {detail.customer?.name || "Customer"} - {detail.service?.name || "Service"}
-                      </h3>
+                  <div key={detail.id} className="border rounded-md bg-card overflow-hidden">
+                    <div 
+                      className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/30"
+                      onClick={() => toggleDetailExpand(detail.id)}
+                    >
+                      <div className="flex items-center">
+                        {expandedDetails[detail.id] ? 
+                          <ChevronDown className="h-4 w-4 mr-2" /> : 
+                          <ChevronRight className="h-4 w-4 mr-2" />
+                        }
+                        <h3 className="font-medium">
+                          {detail.customer?.name || "Customer"} - {detail.service?.name || "Service"}
+                        </h3>
+                      </div>
                       {shipment.status === 'pending' && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-popover">
-                            <DropdownMenuItem onClick={() => handleEditDetail(detail.id)}>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditDetail(detail.id);
+                            }}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-destructive"
-                              onClick={() => handleDeleteDetail(detail.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDetail(detail.id);
+                              }}
                             >
                               <Trash className="mr-2 h-4 w-4" />
                               Delete
@@ -734,51 +763,12 @@ const ShipmentDetails = () => {
                         </DropdownMenu>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Pallets</p>
-                        <p>{detail.number_of_pallets}</p>
+                    
+                    {expandedDetails[detail.id] && (
+                      <div className="p-4 pt-0 border-t">
+                        <ShipmentDetailItem detail={detail} />
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Bags</p>
-                        <p>{detail.number_of_bags}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Format</p>
-                        <p>
-                          {
-                            detail.service?.name === 'Prior' ? detail.prior_format?.name :
-                            detail.service?.name === 'Eco' ? detail.eco_format?.name :
-                            detail.service?.name === 'S3C' ? detail.s3c_format?.name :
-                            detail.format?.name || '-'
-                          }
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Gross Weight</p>
-                        <p>{detail.gross_weight} kg</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Tare Weight</p>
-                        <p>{detail.tare_weight} kg</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Net Weight</p>
-                        <p>{detail.net_weight.toFixed(2)} kg</p>
-                      </div>
-                      {detail.dispatch_number && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Dispatch Number</p>
-                          <p>{detail.dispatch_number}</p>
-                        </div>
-                      )}
-                      {detail.doe && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">DOE</p>
-                          <p>{detail.doe.name}</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))}
 
