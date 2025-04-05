@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
 import { usePDF } from "@/contexts/PDFContext";
@@ -93,6 +93,10 @@ const ShipmentDetails = () => {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [deleteDetailId, setDeleteDetailId] = useState<string | null>(null);
   const [completeAlertOpen, setCompleteAlertOpen] = useState(false);
+  const [deleteShipmentAlertOpen, setDeleteShipmentAlertOpen] = useState(false);
+  const [editShipmentMode, setEditShipmentMode] = useState(false);
+  const [editedShipment, setEditedShipment] = useState<Partial<Shipment>>({});
+  
   const [totals, setTotals] = useState({
     grossWeight: 0,
     tareWeight: 0,
@@ -124,6 +128,12 @@ const ShipmentDetails = () => {
         
         if (shipmentError) throw shipmentError;
         setShipment(shipmentData);
+        setEditedShipment({
+          driver_name: shipmentData.driver_name,
+          seal_no: shipmentData.seal_no,
+          truck_reg_no: shipmentData.truck_reg_no,
+          trailer_reg_no: shipmentData.trailer_reg_no,
+        });
         
         const { data: detailsData, error: detailsError } = await supabase
           .from('shipment_details')
@@ -164,6 +174,12 @@ const ShipmentDetails = () => {
       .channel('shipment-details-changes')
       .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'shipment_details', filter: `shipment_id=eq.${id}` },
+          (payload) => {
+            fetchShipmentData();
+          }
+      )
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'shipments', filter: `id=eq.${id}` },
           (payload) => {
             fetchShipmentData();
           }
@@ -302,6 +318,124 @@ const ShipmentDetails = () => {
     }
   };
 
+  const handleEditShipment = () => {
+    setEditShipmentMode(true);
+  };
+
+  const handleSaveShipmentChanges = async () => {
+    if (!id || !shipment) return;
+    
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({
+          driver_name: editedShipment.driver_name,
+          seal_no: editedShipment.seal_no,
+          truck_reg_no: editedShipment.truck_reg_no,
+          trailer_reg_no: editedShipment.trailer_reg_no,
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      await supabase
+        .from('audit_logs')
+        .insert([{
+          user_id: user?.id,
+          shipment_id: id,
+          action: 'edit_shipment',
+          old_data: {
+            driver_name: shipment.driver_name,
+            seal_no: shipment.seal_no,
+            truck_reg_no: shipment.truck_reg_no,
+            trailer_reg_no: shipment.trailer_reg_no,
+          },
+          new_data: editedShipment
+        }]);
+      
+      toast({
+        title: "Shipment updated",
+        description: "The shipment has been updated successfully",
+      });
+      
+      setEditShipmentMode(false);
+    } catch (error) {
+      console.error('Error updating shipment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update the shipment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteShipment = () => {
+    if (details.length > 0) {
+      toast({
+        title: "Cannot delete shipment",
+        description: "You must delete all shipment details before deleting the shipment",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setDeleteShipmentAlertOpen(true);
+  };
+
+  const confirmDeleteShipment = async () => {
+    if (!id) return;
+    
+    try {
+      const { data: detailsData, error: countError } = await supabase
+        .from('shipment_details')
+        .select('id', { count: 'exact', head: true })
+        .eq('shipment_id', id);
+      
+      if (countError) throw countError;
+      
+      if ((detailsData?.length || 0) > 0) {
+        toast({
+          title: "Cannot delete shipment",
+          description: "You must delete all shipment details before deleting the shipment",
+          variant: "destructive",
+        });
+        setDeleteShipmentAlertOpen(false);
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('shipments')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      await supabase
+        .from('audit_logs')
+        .insert([{
+          user_id: user?.id,
+          action: 'delete_shipment',
+          old_data: { id, status: shipment?.status }
+        }]);
+      
+      toast({
+        title: "Shipment deleted",
+        description: "The shipment has been deleted successfully",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting shipment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the shipment",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteShipmentAlertOpen(false);
+    }
+  };
+
   const handleGeneratePreAlertPDF = async () => {
     if (!id) return;
     await generatePreAlertPDF(id);
@@ -310,6 +444,11 @@ const ShipmentDetails = () => {
   const handleGenerateCMRPDF = async () => {
     if (!id) return;
     await generateCMRPDF(id);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedShipment(prev => ({ ...prev, [name]: value }));
   };
 
   if (isLoading) {
@@ -345,23 +484,56 @@ const ShipmentDetails = () => {
             </Button>
             <h1 className="text-3xl font-bold">Shipment Details</h1>
           </div>
-          {shipment.status === 'pending' && (
-            <Button 
-              variant="default"
-              onClick={handleCompleteShipment}
-              disabled={details.length === 0}
-            >
-              Mark as Completed
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {shipment.status === 'pending' && (
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={handleEditShipment}
+                  disabled={editShipmentMode}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={handleDeleteShipment}
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+                <Button 
+                  variant="default"
+                  onClick={handleCompleteShipment}
+                  disabled={details.length === 0}
+                >
+                  Mark as Completed
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Shipment Information</CardTitle>
-            <CardDescription>
-              View details for this shipment
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Shipment Information</CardTitle>
+                <CardDescription>
+                  View details for this shipment
+                </CardDescription>
+              </div>
+              {editShipmentMode && (
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setEditShipmentMode(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="default" onClick={handleSaveShipmentChanges}>
+                    Save Changes
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -371,7 +543,16 @@ const ShipmentDetails = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Driver</p>
-                <p className="font-medium">{shipment.driver_name}</p>
+                {editShipmentMode ? (
+                  <Input
+                    name="driver_name"
+                    value={editedShipment.driver_name || ''}
+                    onChange={handleInputChange}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="font-medium">{shipment.driver_name}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Departure Date</p>
@@ -383,7 +564,16 @@ const ShipmentDetails = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Seal No</p>
-                <p className="font-medium">{shipment.seal_no || "-"}</p>
+                {editShipmentMode ? (
+                  <Input
+                    name="seal_no"
+                    value={editedShipment.seal_no || ''}
+                    onChange={handleInputChange}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="font-medium">{shipment.seal_no || "-"}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -399,11 +589,29 @@ const ShipmentDetails = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Truck Reg No</p>
-                <p className="font-medium">{shipment.truck_reg_no || "-"}</p>
+                {editShipmentMode ? (
+                  <Input
+                    name="truck_reg_no"
+                    value={editedShipment.truck_reg_no || ''}
+                    onChange={handleInputChange}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="font-medium">{shipment.truck_reg_no || "-"}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Trailer Reg No</p>
-                <p className="font-medium">{shipment.trailer_reg_no || "-"}</p>
+                {editShipmentMode ? (
+                  <Input
+                    name="trailer_reg_no"
+                    value={editedShipment.trailer_reg_no || ''}
+                    onChange={handleInputChange}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="font-medium">{shipment.trailer_reg_no || "-"}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -659,6 +867,23 @@ const ShipmentDetails = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmCompleteShipment}>
               Complete Shipment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteShipmentAlertOpen} onOpenChange={setDeleteShipmentAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Shipment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this shipment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteShipment} className="bg-destructive text-destructive-foreground">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
