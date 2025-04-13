@@ -1,16 +1,8 @@
-
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { saveFile } from "@/utils/mobileHelper";
 import { format } from "date-fns";
-
-// Add type declaration for jspdf-autotable
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 // Types for our shipment data
 interface Shipment {
@@ -275,8 +267,8 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
     ];
   });
   
-  // Generate the table
-  doc.autoTable({
+  // Generate the table using autoTable
+  autoTable(doc, {
     startY: y,
     head: [headers],
     body: tableData,
