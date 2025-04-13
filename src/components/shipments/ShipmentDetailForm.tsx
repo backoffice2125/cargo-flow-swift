@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,12 +77,10 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
 }) => {
   const { toast } = useToast();
   
-  // Loading states
   const [loading, setLoading] = useState(false);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(isEditMode);
   
-  // Dropdown options
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [formats, setFormats] = useState<Format[]>([]);
@@ -92,7 +89,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   const [s3cFormats, setS3CFormats] = useState<S3CFormat[]>([]);
   const [doeOptions, setDoeOptions] = useState<DOE[]>([]);
   
-  // Form data state
   const [formData, setFormData] = useState({
     number_of_pallets: 1,
     number_of_bags: 0,
@@ -108,19 +104,15 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     doe_id: ""
   });
   
-  // Service selected tracking for conditional fields
   const [selectedService, setSelectedService] = useState<string>("");
   
-  // Filtered formats based on selected service
   const [filteredFormats, setFilteredFormats] = useState<Format[]>([]);
   
-  // Load dropdown options
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         setLoadingDropdowns(true);
         
-        // Fetch customers
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
           .select('id, name')
@@ -129,7 +121,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (customersError) throw customersError;
         setCustomers(customersData || []);
         
-        // Fetch services
         const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('id, name')
@@ -138,7 +129,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (servicesError) throw servicesError;
         setServices(servicesData || []);
         
-        // Fetch formats
         const { data: formatsData, error: formatsError } = await supabase
           .from('formats')
           .select('id, name, service_id')
@@ -147,7 +137,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (formatsError) throw formatsError;
         setFormats(formatsData || []);
         
-        // Fetch prior formats
         const { data: priorFormatsData, error: priorFormatsError } = await supabase
           .from('prior_formats')
           .select('id, name')
@@ -156,7 +145,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (priorFormatsError) throw priorFormatsError;
         setPriorFormats(priorFormatsData || []);
         
-        // Fetch eco formats
         const { data: ecoFormatsData, error: ecoFormatsError } = await supabase
           .from('eco_formats')
           .select('id, name')
@@ -165,7 +153,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (ecoFormatsError) throw ecoFormatsError;
         setEcoFormats(ecoFormatsData || []);
         
-        // Fetch s3c formats
         const { data: s3cFormatsData, error: s3cFormatsError } = await supabase
           .from('s3c_formats')
           .select('id, name')
@@ -174,7 +161,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (s3cFormatsError) throw s3cFormatsError;
         setS3CFormats(s3cFormatsData || []);
         
-        // Fetch DOE options
         const { data: doeData, error: doeError } = await supabase
           .from('doe')
           .select('id, name')
@@ -198,7 +184,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     fetchDropdownData();
   }, [toast]);
   
-  // Load detail data if in edit mode
   useEffect(() => {
     const fetchDetailData = async () => {
       if (!isEditMode || !detailId) return;
@@ -230,7 +215,6 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
             doe_id: data.doe_id || ""
           });
           
-          // Find the service name
           if (data.service_id) {
             const service = services.find(s => s.id === data.service_id);
             if (service) {
@@ -255,17 +239,14 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     }
   }, [isEditMode, detailId, services, toast]);
   
-  // Filter formats based on selected service
   useEffect(() => {
     const selectedServiceObj = services.find(s => s.id === formData.service_id);
     if (selectedServiceObj) {
       setSelectedService(selectedServiceObj.name);
       
-      // Filter formats for standard service
       const filtered = formats.filter(f => f.service_id === formData.service_id);
       setFilteredFormats(filtered);
       
-      // Clear other format fields if service changed
       if (selectedServiceObj.name !== 'Prior') {
         setFormData(prev => ({ ...prev, prior_format_id: "" }));
       }
@@ -284,10 +265,9 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     }
   }, [formData.service_id, services, formats]);
   
-  // Update tare weight when number of bags changes
   useEffect(() => {
-    const bagWeight = 0.125; // Weight per bag in kg
-    const baseTareWeight = 25.7; // Default tare weight
+    const bagWeight = 0.125;
+    const baseTareWeight = 25.7;
     
     if (formData.number_of_bags > 0) {
       const newTareWeight = baseTareWeight + (formData.number_of_bags * bagWeight);
@@ -366,11 +346,9 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     setLoading(true);
     
     try {
-      // Prepare data for insertion/update - filter out empty string values for UUID fields
       const dataToSave = {
         ...formData,
         shipment_id: shipmentId,
-        // Set null for empty UUID strings
         format_id: formData.format_id || null,
         prior_format_id: formData.prior_format_id || null,
         eco_format_id: formData.eco_format_id || null,
@@ -630,11 +608,15 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                   <SelectValue placeholder="Select DOE" />
                 </SelectTrigger>
                 <SelectContent>
-                  {doeOptions.map((doe) => (
-                    <SelectItem key={doe.id} value={doe.id}>
-                      {doe.name}
-                    </SelectItem>
-                  ))}
+                  {doeOptions.length > 0 ? (
+                    doeOptions.map((doe) => (
+                      <SelectItem key={doe.id} value={doe.id || "none"}>
+                        {doe.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-options">No options available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

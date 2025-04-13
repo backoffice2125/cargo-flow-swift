@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,6 @@ import { ArrowLeft, Save, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Types for our select options
 interface Carrier {
   id: string;
   name: string;
@@ -31,31 +29,27 @@ const ShipmentNew = () => {
   const [showDetailsForm, setShowDetailsForm] = useState(false);
   const [currentShipmentId, setCurrentShipmentId] = useState<string | null>(null);
   
-  // State for dropdown options
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [subcarriers, setSubcarriers] = useState<Subcarrier[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Main form state
   const [formData, setFormData] = useState({
     carrier_id: "",
     subcarrier_id: "",
     driver_name: "",
     departure_date: new Date().toISOString().split("T")[0],
-    arrival_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],  // Tomorrow
+    arrival_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],  
     status: "pending",
     seal_no: "",
     truck_reg_no: "",
     trailer_reg_no: "",
   });
 
-  // Fetch dropdown data
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         setLoading(true);
         
-        // Fetch carriers
         const { data: carriersData, error: carriersError } = await supabase
           .from('carriers')
           .select('id, name')
@@ -64,7 +58,6 @@ const ShipmentNew = () => {
         if (carriersError) throw carriersError;
         setCarriers(carriersData || []);
         
-        // Fetch subcarriers
         const { data: subcarriersData, error: subcarriersError } = await supabase
           .from('subcarriers')
           .select('id, name')
@@ -109,7 +102,6 @@ const ShipmentNew = () => {
       return;
     }
     
-    // Validate required fields
     const requiredFields = ["carrier_id", "subcarrier_id", "driver_name", "departure_date", "arrival_date"];
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
@@ -125,7 +117,6 @@ const ShipmentNew = () => {
     setIsLoading(true);
     
     try {
-      // Insert shipment into Supabase
       const { data, error } = await supabase
         .from('shipments')
         .insert([
@@ -193,11 +184,15 @@ const ShipmentNew = () => {
                         <SelectValue placeholder="Select carrier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {carriers.map((carrier) => (
-                          <SelectItem key={carrier.id} value={carrier.id}>
-                            {carrier.name}
-                          </SelectItem>
-                        ))}
+                        {carriers.length > 0 ? (
+                          carriers.map((carrier) => (
+                            <SelectItem key={carrier.id} value={carrier.id}>
+                              {carrier.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-carriers">No carriers available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -212,11 +207,15 @@ const ShipmentNew = () => {
                         <SelectValue placeholder="Select subcarrier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subcarriers.map((subcarrier) => (
-                          <SelectItem key={subcarrier.id} value={subcarrier.id}>
-                            {subcarrier.name}
-                          </SelectItem>
-                        ))}
+                        {subcarriers.length > 0 ? (
+                          subcarriers.map((subcarrier) => (
+                            <SelectItem key={subcarrier.id} value={subcarrier.id}>
+                              {subcarrier.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-subcarriers">No subcarriers available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
