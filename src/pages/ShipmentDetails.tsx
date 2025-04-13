@@ -404,19 +404,21 @@ const ShipmentDetails = () => {
     setIsSaving(true);
     
     try {
+      const dataToUpdate = {
+        driver_name: editedShipment.driver_name,
+        status: editedShipment.status,
+        carrier_id: editedShipment.carrier_id === 'none' ? null : editedShipment.carrier_id,
+        subcarrier_id: editedShipment.subcarrier_id === 'none' ? null : editedShipment.subcarrier_id,
+        departure_date: editedShipment.departure_date,
+        arrival_date: editedShipment.arrival_date,
+        seal_no: editedShipment.seal_no,
+        truck_reg_no: editedShipment.truck_reg_no,
+        trailer_reg_no: editedShipment.trailer_reg_no,
+      };
+      
       const { error } = await supabase
         .from('shipments')
-        .update({
-          driver_name: editedShipment.driver_name,
-          status: editedShipment.status,
-          carrier_id: editedShipment.carrier_id,
-          subcarrier_id: editedShipment.subcarrier_id,
-          departure_date: editedShipment.departure_date,
-          arrival_date: editedShipment.arrival_date,
-          seal_no: editedShipment.seal_no,
-          truck_reg_no: editedShipment.truck_reg_no,
-          trailer_reg_no: editedShipment.trailer_reg_no,
-        })
+        .update(dataToUpdate)
         .eq('id', id);
         
       if (error) throw error;
@@ -679,14 +681,14 @@ const ShipmentDetails = () => {
                 {editShipmentMode ? (
                   <div className="mt-1">
                     <Select 
-                      value={editedShipment.carrier_id || ''} 
-                      onValueChange={(value) => handleSelectChange('carrier_id', value)}
+                      value={editedShipment.carrier_id || 'none'} 
+                      onValueChange={(value) => handleSelectChange('carrier_id', value === 'none' ? '' : value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select carrier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {carriers.map(carrier => (
                           <SelectItem key={carrier.id} value={carrier.id}>
                             {carrier.name}
@@ -704,14 +706,14 @@ const ShipmentDetails = () => {
                 {editShipmentMode ? (
                   <div className="mt-1">
                     <Select 
-                      value={editedShipment.subcarrier_id || ''} 
-                      onValueChange={(value) => handleSelectChange('subcarrier_id', value)}
+                      value={editedShipment.subcarrier_id || 'none'} 
+                      onValueChange={(value) => handleSelectChange('subcarrier_id', value === 'none' ? '' : value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select subcarrier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {subcarriers.map(carrier => (
                           <SelectItem key={carrier.id} value={carrier.id}>
                             {carrier.name}

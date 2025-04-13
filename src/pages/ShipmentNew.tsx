@@ -191,7 +191,7 @@ const ShipmentNew = () => {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no-carriers">No carriers available</SelectItem>
+                          <SelectItem value="no-carriers-available">No carriers available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -214,7 +214,7 @@ const ShipmentNew = () => {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no-subcarriers">No subcarriers available</SelectItem>
+                          <SelectItem value="no-subcarriers-available">No subcarriers available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

@@ -610,12 +610,12 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 <SelectContent>
                   {doeOptions.length > 0 ? (
                     doeOptions.map((doe) => (
-                      <SelectItem key={doe.id} value={doe.id || "none"}>
+                      <SelectItem key={doe.id} value={doe.id || "none-available"}>
                         {doe.name}
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="no-options">No options available</SelectItem>
+                    <SelectItem value="no-options-available">No options available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
