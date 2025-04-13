@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
 import ShipmentDetailItem from "@/components/shipments/ShipmentDetailItem";
@@ -99,6 +99,7 @@ const ShipmentDetails = () => {
   const [editShipmentMode, setEditShipmentMode] = useState(false);
   const [editedShipment, setEditedShipment] = useState<Partial<Shipment>>({});
   const [expandedDetails, setExpandedDetails] = useState<{ [key: string]: boolean }>({});
+  const [isSaving, setIsSaving] = useState(false);
   
   const [totals, setTotals] = useState({
     grossWeight: 0,
@@ -328,11 +329,33 @@ const ShipmentDetails = () => {
   };
 
   const handleEditShipment = () => {
+    if (!shipment) return;
+    
+    setEditedShipment({
+      driver_name: shipment.driver_name,
+      seal_no: shipment.seal_no,
+      truck_reg_no: shipment.truck_reg_no,
+      trailer_reg_no: shipment.trailer_reg_no,
+    });
     setEditShipmentMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (!shipment) return;
+    
+    setEditedShipment({
+      driver_name: shipment.driver_name,
+      seal_no: shipment.seal_no,
+      truck_reg_no: shipment.truck_reg_no,
+      trailer_reg_no: shipment.trailer_reg_no,
+    });
+    setEditShipmentMode(false);
   };
 
   const handleSaveShipmentChanges = async () => {
     if (!id || !shipment) return;
+    
+    setIsSaving(true);
     
     try {
       const { error } = await supabase
@@ -346,6 +369,14 @@ const ShipmentDetails = () => {
         .eq('id', id);
         
       if (error) throw error;
+      
+      setShipment({
+        ...shipment,
+        driver_name: editedShipment.driver_name || shipment.driver_name,
+        seal_no: editedShipment.seal_no,
+        truck_reg_no: editedShipment.truck_reg_no,
+        trailer_reg_no: editedShipment.trailer_reg_no,
+      });
       
       await supabase
         .from('audit_logs')
@@ -375,6 +406,8 @@ const ShipmentDetails = () => {
         description: "Failed to update the shipment",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -501,7 +534,7 @@ const ShipmentDetails = () => {
             <h1 className="text-3xl font-bold">Shipment Details</h1>
           </div>
           <div className="flex items-center gap-2">
-            {shipment.status === 'pending' && (
+            {shipment?.status === 'pending' && (
               <>
                 <Button 
                   variant="outline"
@@ -541,11 +574,21 @@ const ShipmentDetails = () => {
               </div>
               {editShipmentMode && (
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={() => setEditShipmentMode(false)}>
+                  <Button variant="ghost" onClick={handleCancelEdit} disabled={isSaving}>
                     Cancel
                   </Button>
-                  <Button variant="default" onClick={handleSaveShipmentChanges}>
-                    Save Changes
+                  <Button variant="default" onClick={handleSaveShipmentChanges} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -555,7 +598,7 @@ const ShipmentDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Carrier</p>
-                <p className="font-medium">{shipment.carrier?.name || "-"} {shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ""}</p>
+                <p className="font-medium">{shipment?.carrier?.name || "-"} {shipment?.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Driver</p>
@@ -567,16 +610,16 @@ const ShipmentDetails = () => {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="font-medium">{shipment.driver_name}</p>
+                  <p className="font-medium">{shipment?.driver_name}</p>
                 )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Departure Date</p>
-                <p className="font-medium">{new Date(shipment.departure_date).toLocaleDateString()}</p>
+                <p className="font-medium">{shipment ? new Date(shipment.departure_date).toLocaleDateString() : "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Arrival Date</p>
-                <p className="font-medium">{new Date(shipment.arrival_date).toLocaleDateString()}</p>
+                <p className="font-medium">{shipment ? new Date(shipment.arrival_date).toLocaleDateString() : "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Seal No</p>
@@ -588,18 +631,18 @@ const ShipmentDetails = () => {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="font-medium">{shipment.seal_no || "-"}</p>
+                  <p className="font-medium">{shipment?.seal_no || "-"}</p>
                 )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <p className="font-medium">
                   <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                    shipment.status === "pending" 
+                    shipment?.status === "pending" 
                       ? "bg-amber-100 text-amber-800" 
                       : "bg-green-100 text-green-800"
                   }`}>
-                    {shipment.status.charAt(0).toUpperCase() + shipment.status.slice(1)}
+                    {shipment?.status.charAt(0).toUpperCase() + shipment?.status.slice(1)}
                   </span>
                 </p>
               </div>
@@ -613,7 +656,7 @@ const ShipmentDetails = () => {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="font-medium">{shipment.truck_reg_no || "-"}</p>
+                  <p className="font-medium">{shipment?.truck_reg_no || "-"}</p>
                 )}
               </div>
               <div>
@@ -626,7 +669,7 @@ const ShipmentDetails = () => {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="font-medium">{shipment.trailer_reg_no || "-"}</p>
+                  <p className="font-medium">{shipment?.trailer_reg_no || "-"}</p>
                 )}
               </div>
             </div>
