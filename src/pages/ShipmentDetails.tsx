@@ -572,6 +572,12 @@ const ShipmentDetails = () => {
                   View details for this shipment
                 </CardDescription>
               </div>
+              {shipment?.status === 'pending' && !editShipmentMode && (
+                <Button variant="outline" onClick={handleEditShipment}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
               {editShipmentMode && (
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={handleCancelEdit} disabled={isSaving}>
