@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface Shipment {
   id: string;
@@ -36,9 +42,11 @@ interface Shipment {
   trailer_reg_no: string | null;
   carrier: {
     name: string;
+    id: string;
   } | null;
   subcarrier: {
     name: string;
+    id: string;
   } | null;
 }
 
@@ -82,6 +90,11 @@ interface ShipmentDetail {
   } | null;
 }
 
+interface Carrier {
+  id: string;
+  name: string;
+}
+
 const ShipmentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -100,6 +113,8 @@ const ShipmentDetails = () => {
   const [editedShipment, setEditedShipment] = useState<Partial<Shipment>>({});
   const [expandedDetails, setExpandedDetails] = useState<{ [key: string]: boolean }>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [subcarriers, setSubcarriers] = useState<Carrier[]>([]);
   
   const [totals, setTotals] = useState({
     grossWeight: 0,
@@ -124,8 +139,8 @@ const ShipmentDetails = () => {
           .from('shipments')
           .select(`
             *,
-            carrier:carrier_id(name),
-            subcarrier:subcarrier_id(name)
+            carrier:carrier_id(id, name),
+            subcarrier:subcarrier_id(id, name)
           `)
           .eq('id', id)
           .single();
@@ -134,10 +149,31 @@ const ShipmentDetails = () => {
         setShipment(shipmentData);
         setEditedShipment({
           driver_name: shipmentData.driver_name,
+          status: shipmentData.status,
+          carrier_id: shipmentData.carrier_id,
+          subcarrier_id: shipmentData.subcarrier_id,
+          departure_date: shipmentData.departure_date,
+          arrival_date: shipmentData.arrival_date,
           seal_no: shipmentData.seal_no,
           truck_reg_no: shipmentData.truck_reg_no,
           trailer_reg_no: shipmentData.trailer_reg_no,
         });
+        
+        const { data: carriersData, error: carriersError } = await supabase
+          .from('carriers')
+          .select('*')
+          .order('name', { ascending: true });
+          
+        if (carriersError) throw carriersError;
+        setCarriers(carriersData || []);
+        
+        const { data: subcarriersData, error: subcarriersError } = await supabase
+          .from('subcarriers')
+          .select('*')
+          .order('name', { ascending: true });
+          
+        if (subcarriersError) throw subcarriersError;
+        setSubcarriers(subcarriersData || []);
         
         const { data: detailsData, error: detailsError } = await supabase
           .from('shipment_details')
@@ -333,6 +369,11 @@ const ShipmentDetails = () => {
     
     setEditedShipment({
       driver_name: shipment.driver_name,
+      status: shipment.status,
+      carrier_id: shipment.carrier_id,
+      subcarrier_id: shipment.subcarrier_id,
+      departure_date: shipment.departure_date,
+      arrival_date: shipment.arrival_date,
       seal_no: shipment.seal_no,
       truck_reg_no: shipment.truck_reg_no,
       trailer_reg_no: shipment.trailer_reg_no,
@@ -345,6 +386,11 @@ const ShipmentDetails = () => {
     
     setEditedShipment({
       driver_name: shipment.driver_name,
+      status: shipment.status,
+      carrier_id: shipment.carrier_id,
+      subcarrier_id: shipment.subcarrier_id,
+      departure_date: shipment.departure_date,
+      arrival_date: shipment.arrival_date,
       seal_no: shipment.seal_no,
       truck_reg_no: shipment.truck_reg_no,
       trailer_reg_no: shipment.trailer_reg_no,
@@ -362,6 +408,11 @@ const ShipmentDetails = () => {
         .from('shipments')
         .update({
           driver_name: editedShipment.driver_name,
+          status: editedShipment.status,
+          carrier_id: editedShipment.carrier_id,
+          subcarrier_id: editedShipment.subcarrier_id,
+          departure_date: editedShipment.departure_date,
+          arrival_date: editedShipment.arrival_date,
           seal_no: editedShipment.seal_no,
           truck_reg_no: editedShipment.truck_reg_no,
           trailer_reg_no: editedShipment.trailer_reg_no,
@@ -370,13 +421,19 @@ const ShipmentDetails = () => {
         
       if (error) throw error;
       
-      setShipment({
-        ...shipment,
-        driver_name: editedShipment.driver_name || shipment.driver_name,
-        seal_no: editedShipment.seal_no,
-        truck_reg_no: editedShipment.truck_reg_no,
-        trailer_reg_no: editedShipment.trailer_reg_no,
-      });
+      const { data: updatedShipment, error: fetchError } = await supabase
+        .from('shipments')
+        .select(`
+          *,
+          carrier:carrier_id(id, name),
+          subcarrier:subcarrier_id(id, name)
+        `)
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      setShipment(updatedShipment);
       
       await supabase
         .from('audit_logs')
@@ -386,6 +443,11 @@ const ShipmentDetails = () => {
           action: 'edit_shipment',
           old_data: {
             driver_name: shipment.driver_name,
+            status: shipment.status,
+            carrier_id: shipment.carrier_id,
+            subcarrier_id: shipment.subcarrier_id,
+            departure_date: shipment.departure_date,
+            arrival_date: shipment.arrival_date,
             seal_no: shipment.seal_no,
             truck_reg_no: shipment.truck_reg_no,
             trailer_reg_no: shipment.trailer_reg_no,
@@ -491,6 +553,16 @@ const ShipmentDetails = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditedShipment(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setEditedShipment(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleDateChange = (name: string, date: Date | undefined) => {
+    if (date) {
+      setEditedShipment(prev => ({ ...prev, [name]: format(date, 'yyyy-MM-dd') }));
+    }
   };
 
   const toggleDetailExpand = (detailId: string) => {
@@ -604,7 +676,53 @@ const ShipmentDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Carrier</p>
-                <p className="font-medium">{shipment?.carrier?.name || "-"} {shipment?.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ""}</p>
+                {editShipmentMode ? (
+                  <div className="mt-1">
+                    <Select 
+                      value={editedShipment.carrier_id || ''} 
+                      onValueChange={(value) => handleSelectChange('carrier_id', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select carrier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {carriers.map(carrier => (
+                          <SelectItem key={carrier.id} value={carrier.id}>
+                            {carrier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <p className="font-medium">{shipment?.carrier?.name || "-"} {shipment?.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ""}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Subcarrier</p>
+                {editShipmentMode ? (
+                  <div className="mt-1">
+                    <Select 
+                      value={editedShipment.subcarrier_id || ''} 
+                      onValueChange={(value) => handleSelectChange('subcarrier_id', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select subcarrier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {subcarriers.map(carrier => (
+                          <SelectItem key={carrier.id} value={carrier.id}>
+                            {carrier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <p className="font-medium">{shipment?.subcarrier?.name || "-"}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Driver</p>
@@ -620,12 +738,91 @@ const ShipmentDetails = () => {
                 )}
               </div>
               <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                {editShipmentMode ? (
+                  <div className="mt-1">
+                    <Select 
+                      value={editedShipment.status || 'pending'} 
+                      onValueChange={(value) => handleSelectChange('status', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <p className="font-medium">
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                      shipment?.status === "pending" 
+                        ? "bg-amber-100 text-amber-800" 
+                        : "bg-green-100 text-green-800"
+                    }`}>
+                      {shipment?.status.charAt(0).toUpperCase() + shipment?.status.slice(1)}
+                    </span>
+                  </p>
+                )}
+              </div>
+              <div>
                 <p className="text-sm text-muted-foreground">Departure Date</p>
-                <p className="font-medium">{shipment ? new Date(shipment.departure_date).toLocaleDateString() : "-"}</p>
+                {editShipmentMode ? (
+                  <div className="mt-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          {editedShipment.departure_date ? 
+                            format(new Date(editedShipment.departure_date), 'PPP') : 
+                            "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editedShipment.departure_date ? new Date(editedShipment.departure_date) : undefined}
+                          onSelect={(date) => handleDateChange('departure_date', date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : (
+                  <p className="font-medium">{shipment ? new Date(shipment.departure_date).toLocaleDateString() : "-"}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Arrival Date</p>
-                <p className="font-medium">{shipment ? new Date(shipment.arrival_date).toLocaleDateString() : "-"}</p>
+                {editShipmentMode ? (
+                  <div className="mt-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          {editedShipment.arrival_date ? 
+                            format(new Date(editedShipment.arrival_date), 'PPP') : 
+                            "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editedShipment.arrival_date ? new Date(editedShipment.arrival_date) : undefined}
+                          onSelect={(date) => handleDateChange('arrival_date', date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : (
+                  <p className="font-medium">{shipment ? new Date(shipment.arrival_date).toLocaleDateString() : "-"}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Seal No</p>
@@ -639,18 +836,6 @@ const ShipmentDetails = () => {
                 ) : (
                   <p className="font-medium">{shipment?.seal_no || "-"}</p>
                 )}
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-medium">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                    shipment?.status === "pending" 
-                      ? "bg-amber-100 text-amber-800" 
-                      : "bg-green-100 text-green-800"
-                  }`}>
-                    {shipment?.status.charAt(0).toUpperCase() + shipment?.status.slice(1)}
-                  </span>
-                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Truck Reg No</p>
