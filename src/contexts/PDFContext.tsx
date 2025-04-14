@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { generatePreAlertPDF, generateCMRPDF, downloadPDF, PdfGenerationOptions } from "@/utils/pdfGenerator";
 import { isNativeMobile } from "@/utils/mobileHelper";
+import { format } from "date-fns";
 
 type PDFContextType = {
   generatePreAlertPDF: (shipmentId: string, options?: PdfGenerationOptions) => Promise<void>;
@@ -21,8 +22,24 @@ export const PDFProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       setLoading(true);
       
+      // Fetch shipment data for filename generation
+      const { data: shipment, error } = await supabase
+        .from('shipments')
+        .select('seal_no, departure_date')
+        .eq('id', shipmentId)
+        .single();
+        
+      if (error) throw error;
+      
       const pdfDataUri = await generatePreAlertPDF(shipmentId, options);
-      await downloadPDF(pdfDataUri, `pre-alert-${shipmentId.substring(0, 8)}.pdf`, nativeMobile);
+      
+      // Generate filename using the pattern: Pre-Alert, [Seal No], [Date in dd-MM-yy], [Current Time in HH:mm:ss]
+      const sealNo = shipment.seal_no || 'NoSeal';
+      const departureDate = format(new Date(shipment.departure_date), 'dd-MM-yy');
+      const currentTime = format(new Date(), 'HH:mm:ss');
+      const fileName = `Pre-Alert, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
+      
+      await downloadPDF(pdfDataUri, fileName, nativeMobile);
       
       toast({
         title: "PDF Generated",
@@ -46,8 +63,24 @@ export const PDFProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       setLoading(true);
       
+      // Fetch shipment data for filename generation
+      const { data: shipment, error } = await supabase
+        .from('shipments')
+        .select('seal_no, departure_date')
+        .eq('id', shipmentId)
+        .single();
+        
+      if (error) throw error;
+      
       const pdfDataUri = await generateCMRPDF(shipmentId, options);
-      await downloadPDF(pdfDataUri, `cmr-${shipmentId.substring(0, 8)}.pdf`, nativeMobile);
+      
+      // Generate filename using the pattern: CMR, [Seal No], [Date in dd-MM-yy], [Current Time in HH:mm:ss]
+      const sealNo = shipment.seal_no || 'NoSeal';
+      const departureDate = format(new Date(shipment.departure_date), 'dd-MM-yy');
+      const currentTime = format(new Date(), 'HH:mm:ss');
+      const fileName = `CMR, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
+      
+      await downloadPDF(pdfDataUri, fileName, nativeMobile);
       
       toast({
         title: "PDF Generated",
@@ -85,3 +118,6 @@ export const usePDF = () => {
   }
   return context;
 };
+
+// Import supabase at the top to fix reference error
+import { supabase } from "@/integrations/supabase/client";

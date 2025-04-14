@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,15 @@ export interface PdfGenerationOptions {
     tareWeight?: number;
   };
 }
+
+// Generate filename with the pattern: [Type], [Seal No], [Date in dd-MM-yy], [Current Time in HH:mm:ss]
+const generateFileName = (type: 'CMR' | 'Pre-Alert', shipment: Shipment): string => {
+  const sealNo = shipment.seal_no || 'NoSeal';
+  const departureDate = format(new Date(shipment.departure_date), 'dd-MM-yy');
+  const currentTime = format(new Date(), 'HH:mm:ss');
+  
+  return `${type}, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
+};
 
 // Fetch shipment data with all details
 const fetchShipmentData = async (shipmentId: string): Promise<{
@@ -323,92 +333,131 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
     tareWeight = totalBags * 0.125;
   }
   
-  // Set default font
+  // Set up the document
   doc.setFont("helvetica");
   
-  // Add title and subtitle centered at the top
+  // Add header
   doc.setFontSize(16);
-  doc.text('CMR Document', 105, 20, { align: 'center' });
+  doc.text('CRM', 105, 15, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('International Consignment Note', 105, 30, { align: 'center' });
+  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 105, 22, { align: 'center' });
   
-  // Sender section
-  doc.setFontSize(12);
-  doc.text('1. Sender', 14, 45);
-  doc.setFontSize(10);
+  // Add border around entire page
+  doc.rect(10, 30, 190, 250);
   
-  // Use address settings if available, otherwise use defaults
-  if (addressSettings) {
-    doc.text(addressSettings.sender_name, 14, 50);
-    doc.text(addressSettings.sender_address, 14, 55);
-    doc.text(`${addressSettings.sender_postal_code} ${addressSettings.sender_city}, ${addressSettings.sender_country}`, 14, 60);
-  } else {
-    doc.text('Swift Logistics Ltd.', 14, 50);
-    doc.text('123 Transport Road', 14, 55);
-    doc.text('London, UK', 14, 60);
-  }
+  // First row with sender and declaration
+  doc.rect(10, 30, 95, 40); // Left box for sender
+  doc.rect(105, 30, 95, 40); // Right box for declaration
   
-  // Receiver section
-  doc.setFontSize(12);
-  doc.text('2. Consignee', 14, 75);
-  doc.setFontSize(10);
-  
-  // Use address settings if available, otherwise use defaults
-  if (addressSettings) {
-    doc.text(addressSettings.receiver_name, 14, 80);
-    doc.text(addressSettings.receiver_address, 14, 85);
-    doc.text(`${addressSettings.receiver_postal_code} ${addressSettings.receiver_city}, ${addressSettings.receiver_country}`, 14, 90);
-  } else {
-    doc.text('La Poste Rte Du Baste De Laval', 14, 80);
-    doc.text('Relays #6', 14, 85);
-    doc.text('France', 14, 90);
-  }
-  
-  // Carrier section
-  doc.setFontSize(12);
-  doc.text('3. Carrier', 14, 105);
-  doc.setFontSize(10);
-  doc.text(`${shipment.carrier?.name || 'N/A'} - ${shipment.subcarrier?.name || 'N/A'}`, 14, 110);
-  doc.text(`Driver: ${shipment.driver_name}`, 14, 115);
-  
-  // Vehicle details
-  doc.setFontSize(12);
-  doc.text('4. Vehicle Details', 14, 130);
-  doc.setFontSize(10);
-  doc.text(`Truck Reg No: ${shipment.truck_reg_no || 'N/A'}`, 14, 135);
-  doc.text(`Trailer Reg No: ${shipment.trailer_reg_no || 'N/A'}`, 14, 140);
-  doc.text(`Seal No: ${shipment.seal_no || 'N/A'}`, 14, 145);
-  
-  // Goods summary
-  doc.setFontSize(12);
-  doc.text('5. Goods Summary', 14, 160);
-  doc.setFontSize(10);
-  doc.text(`Total Pallets: ${totalPallets}`, 14, 165);
-  doc.text(`Total Bags: ${totalBags}`, 14, 170);
-  doc.text(`Gross Weight: ${totalGrossWeight.toFixed(2)} kg`, 14, 175);
-  doc.text(`Tare Weight: ${tareWeight.toFixed(2)} kg`, 14, 180);
-  doc.text(`Net Weight: ${(totalGrossWeight - tareWeight).toFixed(2)} kg`, 14, 185);
-  
-  // Date and place
-  doc.setFontSize(12);
-  doc.text('6. Date & Place', 14, 200);
-  doc.setFontSize(10);
-  doc.text(`Departure: ${format(new Date(shipment.departure_date), 'dd/MM/yyyy')}`, 14, 205);
-  doc.text(`Expected Arrival: ${format(new Date(shipment.arrival_date), 'dd/MM/yyyy')}`, 14, 210);
-  
-  // Signature fields
-  doc.setFontSize(12);
-  doc.text('7. Signatures', 14, 225);
-  
-  // Add signature boxes
-  doc.rect(14, 230, 60, 25); // Sender signature
-  doc.rect(84, 230, 60, 25); // Carrier signature
-  doc.rect(154, 230, 60, 25); // Consignee signature
-  
+  // Add "Sender" label
   doc.setFontSize(8);
-  doc.text('Sender', 44, 260);
-  doc.text('Carrier', 114, 260);
-  doc.text('Consignee', 184, 260);
+  doc.text('SENDER (NAME, ADDRESS, COUNTRY)', 12, 35);
+  
+  // Sender content
+  doc.setFontSize(10);
+  if (addressSettings) {
+    doc.text(addressSettings.sender_name, 12, 40);
+    doc.text(`Unit ${addressSettings.sender_address}`, 12, 45);
+    doc.text(`${addressSettings.sender_city}`, 12, 50);
+    doc.text(`${addressSettings.sender_postal_code}`, 12, 55);
+    doc.text(`${addressSettings.sender_country}`, 12, 60);
+  } else {
+    doc.text('Asendia UK', 12, 40);
+    doc.text('Unit 1-12 Heathrow Estate', 12, 45);
+    doc.text('Silver Jubilee way', 12, 50);
+    doc.text('Hounslow', 12, 55);
+    doc.text('TW4 6NF', 12, 60);
+  }
+  
+  // Add "Declaration" label on the right
+  doc.setFontSize(8);
+  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 107, 35);
+  
+  // Second row with consignee
+  doc.rect(10, 70, 95, 40); // Left box for consignee
+  doc.rect(105, 70, 95, 40); // Right box for sender/agent reference
+  
+  // Add "Consignee" label
+  doc.setFontSize(8);
+  doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS) (SIGNATURE (NAME, ADDRESS, PAYS)', 12, 75);
+  
+  // Consignee content
+  doc.setFontSize(10);
+  if (addressSettings) {
+    doc.text(addressSettings.receiver_name, 12, 85);
+    doc.text(addressSettings.receiver_address, 12, 95);
+    doc.text(`${addressSettings.receiver_country}`, 12, 100);
+  } else {
+    doc.text('La Poste, Rte Du Baste De Laval, Relays 95,', 12, 85);
+    doc.text('France', 12, 95);
+  }
+  
+  // Add "Sender/Agent reference" label on the right
+  doc.setFontSize(8);
+  doc.text('SENDER/AGENT REFERENCE (RÉFÉRENCE DE L'EXPÉDITEUR/L'AGENT)', 107, 75);
+  
+  // Third row with carrier information
+  doc.rect(10, 110, 95, 40); // Left box
+  doc.rect(105, 110, 95, 40); // Right box
+  
+  // Add carrier label
+  doc.setFontSize(8);
+  doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, 115);
+  
+  // Carrier content
+  doc.setFontSize(10);
+  doc.text(`Carrier Name:`, 12, 125);
+  doc.text(`${shipment.carrier?.name || 'N/A'} ${shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ''}`, 50, 125);
+  doc.text(`TRUCK & TRAILER:`, 12, 135);
+  doc.text(`${shipment.truck_reg_no || 'N/A'} / ${shipment.trailer_reg_no || 'N/A'}`, 50, 135);
+  
+  // Fourth row
+  doc.rect(10, 150, 95, 70); // Left box
+  doc.rect(105, 150, 95, 70); // Right box
+  
+  // Add goods label
+  doc.setFontSize(8);
+  doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, 155);
+  
+  // Goods content
+  doc.setFontSize(10);
+  doc.text(`Pallets: ${totalPallets}`, 12, 165);
+  doc.text(`Bags: ${totalBags}`, 12, 175);
+  doc.text(`SEAL #1 Number: ${shipment.seal_no || 'N/A'}`, 12, 185);
+  doc.text(`SEAL #2 Number: `, 12, 195);
+  doc.text(`Description of Goods: cross border eCommerce B2C parcels`, 12, 205);
+  
+  // Add weight label on the right
+  doc.setFontSize(8);
+  doc.text('GROSS WEIGHT (KG)', 107, 155);
+  doc.text('VOLUME (M³)', 155, 155);
+  
+  // Weight content
+  doc.setFontSize(10);
+  doc.text(`${totalGrossWeight.toFixed(2)}`, 115, 170);
+  
+  // Fifth row
+  doc.rect(10, 220, 190, 20); // Full width box
+  
+  // Charges label
+  doc.setFontSize(8);
+  doc.text('CARRIAGE CHARGES (FRAIS DE TRANSPORT)', 12, 225);
+  
+  // Sixth row with signature boxes
+  doc.rect(10, 240, 63, 40); // First signature box
+  doc.rect(73, 240, 63, 40); // Second signature box
+  doc.rect(136, 240, 64, 40); // Third signature box
+  
+  // Signature labels
+  doc.setFontSize(8);
+  doc.text('GOODS RECEIVED (MERCHANDISE REÇUE)', 12, 245);
+  doc.text('SIGNATURE OF CARRIER (SIGNATURE DU TRANSPORTEUR)', 75, 245);
+  doc.text('FOR GOODS, SIGNATURE (LIEU DE LA SIGNATURE)', 138, 245);
+  
+  // Signature date fields
+  doc.text('Date:', 12, 270);
+  doc.text('Date:', 75, 270);
+  doc.text('Date: __/__/__', 138, 270);
   
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
