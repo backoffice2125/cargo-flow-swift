@@ -333,7 +333,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   }
   
   // Set up the document
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8); // Standardize content text to 8pt normal font
   
   // Add header
   doc.setFontSize(16);
@@ -354,8 +355,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('SENDER (NAME, ADDRESS, COUNTRY)', 12, 37);
   
   // Sender content
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   if (addressSettings) {
     doc.text(addressSettings.sender_name, 12, 40);
     doc.text(`Unit ${addressSettings.sender_address}`, 12, 45);
@@ -385,8 +386,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS)', 12, 75);
   
   // Consignee content
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   if (addressSettings) {
     doc.text(addressSettings.receiver_name, 12, 85);
     doc.text(addressSettings.receiver_address, 12, 95);
@@ -411,8 +412,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, 115);
   
   // Carrier content
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   doc.text(`Carrier Name:`, 12, 125);
   doc.text(`${shipment.carrier?.name || 'N/A'} ${shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ''}`, 50, 125);
   doc.text(`TRUCK & TRAILER:`, 12, 135);
@@ -428,8 +429,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, 155);
   
   // Goods content
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   doc.text(`Pallets: ${totalPallets}`, 12, 165);
   doc.text(`Bags: ${totalBags}`, 12, 175);
   doc.text(`SEAL #1 Number: ${shipment.seal_no || 'N/A'}`, 12, 185);
@@ -443,8 +444,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('VOLUME (M³)', 155, 155);
   
   // Weight content
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   doc.text(`${totalGrossWeight.toFixed(2)}`, 115, 170);
   
   // Fifth row
@@ -468,8 +469,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('FOR GOODS, SIGNATURE', 138, 245);
   
   // Signature date fields
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
   doc.text('Date:', 12, 270);
   doc.text('Date:', 75, 270);
   doc.text('Date: __/__/__', 138, 270);
