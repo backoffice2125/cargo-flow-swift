@@ -1,309 +1,4 @@
 
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import { supabase } from "@/integrations/supabase/client";
-import { saveFile } from "@/utils/mobileHelper";
-import { format } from "date-fns";
-
-// Types for our shipment data
-interface Shipment {
-  id: string;
-  driver_name: string;
-  departure_date: string;
-  arrival_date: string;
-  status: string;
-  seal_no: string | null;
-  truck_reg_no: string | null;
-  trailer_reg_no: string | null;
-  created_at: string;
-  carrier: { name: string } | null;
-  subcarrier: { name: string } | null;
-}
-
-interface ShipmentDetail {
-  id: string;
-  shipment_id: string;
-  number_of_pallets: number;
-  number_of_bags: number;
-  gross_weight: number;
-  tare_weight: number;
-  net_weight: number;
-  dispatch_number: string | null;
-  customer: { name: string; is_asendia: boolean } | null;
-  service: { name: string } | null;
-  format: { name: string } | null;
-  prior_format: { name: string } | null;
-  eco_format: { name: string } | null;
-  s3c_format: { name: string } | null;
-  doe: { name: string } | null;
-  created_at: string;
-}
-
-interface AddressSettings {
-  sender_name: string;
-  sender_address: string;
-  sender_city: string;
-  sender_country: string;
-  sender_postal_code: string;
-  receiver_name: string;
-  receiver_address: string;
-  receiver_city: string;
-  receiver_country: string;
-  receiver_postal_code: string;
-}
-
-// PDF generation options with customizable CMR fields
-export interface PdfGenerationOptions {
-  isNativeMobile?: boolean;
-  cmrOptions?: {
-    totalPallets?: number;
-    totalBags?: number;
-    grossWeightPallets?: number;
-    grossWeightBags?: number;
-    tareWeight?: number;
-  };
-}
-
-// Generate filename with the pattern: [Type], [Seal No], [Date in dd-MM-yy], [Current Time in HH:mm:ss]
-const generateFileName = (type: 'CMR' | 'Pre-Alert', shipment: Shipment): string => {
-  const sealNo = shipment.seal_no || 'NoSeal';
-  const departureDate = format(new Date(shipment.departure_date), 'dd-MM-yy');
-  const currentTime = format(new Date(), 'HH:mm:ss');
-  
-  return `${type}, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
-};
-
-// Fetch shipment data with all details
-const fetchShipmentData = async (shipmentId: string): Promise<{
-  shipment: Shipment | null;
-  details: ShipmentDetail[];
-  addressSettings: AddressSettings | null;
-}> => {
-  try {
-    // Fetch shipment
-    const { data: shipmentData, error: shipmentError } = await supabase
-      .from('shipments')
-      .select(`
-        id,
-        driver_name,
-        departure_date,
-        arrival_date,
-        status,
-        seal_no,
-        truck_reg_no,
-        trailer_reg_no,
-        created_at,
-        carrier:carrier_id (name),
-        subcarrier:subcarrier_id (name)
-      `)
-      .eq('id', shipmentId)
-      .single();
-      
-    if (shipmentError) throw shipmentError;
-    
-    // Fetch shipment details
-    const { data: detailsData, error: detailsError } = await supabase
-      .from('shipment_details')
-      .select(`
-        id,
-        shipment_id,
-        number_of_pallets,
-        number_of_bags,
-        gross_weight,
-        tare_weight,
-        net_weight,
-        dispatch_number,
-        customer:customer_id (name, is_asendia),
-        service:service_id (name),
-        format:format_id (name),
-        prior_format:prior_format_id (name),
-        eco_format:eco_format_id (name),
-        s3c_format:s3c_format_id (name),
-        doe:doe_id (name),
-        created_at
-      `)
-      .eq('shipment_id', shipmentId)
-      .order('created_at', { ascending: true });
-      
-    if (detailsError) throw detailsError;
-
-    // Fetch address settings
-    const { data: addressData, error: addressError } = await supabase
-      .from('address_settings')
-      .select('*')
-      .limit(1)
-      .single();
-
-    if (addressError && addressError.code !== 'PGRST116') { // PGRST116 is "no rows returned" - not a critical error
-      console.warn('Error fetching address settings:', addressError);
-    }
-    
-    return {
-      shipment: shipmentData,
-      details: detailsData || [],
-      addressSettings: addressData
-    };
-  } catch (error) {
-    console.error('Error fetching shipment data for PDF:', error);
-    throw error;
-  }
-};
-
-// Calculate summary data for a shipment
-const calculateShipmentSummary = (details: ShipmentDetail[]) => {
-  const summary = {
-    totalPallets: 0,
-    totalBags: 0,
-    totalGrossWeight: 0,
-    totalTareWeight: 0,
-    totalNetWeight: 0,
-    asendiaNetWeight: 0,
-    otherNetWeight: 0
-  };
-
-  details.forEach(detail => {
-    summary.totalPallets += detail.number_of_pallets;
-    summary.totalBags += detail.number_of_bags;
-    summary.totalGrossWeight += Number(detail.gross_weight);
-    summary.totalTareWeight += Number(detail.tare_weight);
-    summary.totalNetWeight += Number(detail.net_weight);
-    
-    if (detail.customer?.is_asendia) {
-      summary.asendiaNetWeight += Number(detail.net_weight);
-    } else {
-      summary.otherNetWeight += Number(detail.net_weight);
-    }
-  });
-
-  return summary;
-};
-
-// Generate Pre-Alert PDF
-export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGenerationOptions): Promise<string> => {
-  const { shipment, details, addressSettings } = await fetchShipmentData(shipmentId);
-  
-  if (!shipment) {
-    throw new Error('Shipment not found');
-  }
-  
-  const doc = new jsPDF();
-  const summary = calculateShipmentSummary(details);
-  
-  // Add header
-  doc.setFontSize(20);
-  doc.setTextColor(0, 51, 102);
-  doc.text('Shipment Completion Report', 105, 20, { align: 'center' });
-  
-  // Add horizontal line
-  doc.setDrawColor(0, 51, 102);
-  doc.line(20, 25, 190, 25);
-  
-  // Add shipment information
-  doc.setFontSize(14);
-  doc.setTextColor(0, 51, 102);
-  doc.text('Main Shipment Details:', 20, 35);
-  
-  // Setup table for main details
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  
-  const mainDetails = [
-    { label: 'Date Departure:', value: format(new Date(shipment.departure_date), 'dd/MM/yyyy') },
-    { label: 'Arrival Date:', value: format(new Date(shipment.arrival_date), 'dd/MM/yyyy') },
-    { label: 'Carrier:', value: shipment.carrier?.name || 'N/A' },
-    { label: 'Subcarrier:', value: shipment.subcarrier?.name || 'N/A' },
-    { label: 'Driver Name:', value: shipment.driver_name },
-    { label: 'Truck Reg No:', value: shipment.truck_reg_no || 'N/A' },
-    { label: 'Trailer Reg No:', value: shipment.trailer_reg_no || 'N/A' },
-    { label: 'Seal No:', value: shipment.seal_no || 'N/A' },
-    { label: 'Total Gross Weight:', value: `${summary.totalGrossWeight.toFixed(2)} kg` },
-    { label: 'Total Net Weight:', value: `${summary.totalNetWeight.toFixed(2)} kg` },
-    { label: 'Total Pallets:', value: summary.totalPallets.toString() },
-    { label: 'Total Bags:', value: summary.totalBags.toString() }
-  ];
-
-  // Draw main details table
-  let y = 40;
-  mainDetails.forEach(detail => {
-    doc.rect(20, y, 80, 8);
-    doc.rect(100, y, 90, 8);
-    doc.text(detail.label, 22, y + 5);
-    doc.text(detail.value, 102, y + 5);
-    y += 8;
-  });
-  
-  // Add shipment details section
-  y += 10;
-  doc.setFontSize(14);
-  doc.setTextColor(0, 51, 102);
-  doc.text('Shipment Details:', 20, y);
-  y += 10;
-  
-  // Define columns for the details table
-  const headers = [
-    'Customer', 
-    'Service', 
-    'Format', 
-    'Tare Weight', 
-    'Gross Weight', 
-    'Net Weight',
-    'Dispatch No.', 
-    'DOE'
-  ];
-  
-  // Prepare data for the table
-  const tableData = details.map(detail => {
-    const formatName = (() => {
-      if (detail.service?.name === 'Prior' && detail.prior_format) {
-        return detail.prior_format.name;
-      } else if (detail.service?.name === 'Eco' && detail.eco_format) {
-        return detail.eco_format.name;
-      } else if (detail.service?.name === 'S3C' && detail.s3c_format) {
-        return detail.s3c_format.name;
-      } else {
-        return detail.format?.name || 'N/A';
-      }
-    })();
-    
-    return [
-      detail.customer?.name || 'N/A',
-      detail.service?.name || 'N/A',
-      formatName,
-      `${Number(detail.tare_weight).toFixed(2)} kg`,
-      `${Number(detail.gross_weight).toFixed(2)} kg`,
-      `${Number(detail.net_weight).toFixed(2)} kg`,
-      detail.dispatch_number || 'N/A',
-      detail.doe?.name || 'N/A'
-    ];
-  });
-  
-  // Generate the table using autoTable
-  autoTable(doc, {
-    startY: y,
-    head: [headers],
-    body: tableData,
-    theme: 'striped',
-    headStyles: { fillColor: [0, 51, 102], textColor: 255 },
-    margin: { top: 10 },
-    styles: { overflow: 'linebreak' },
-    columnStyles: { 
-      0: { cellWidth: 30 },
-      1: { cellWidth: 20 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 22 },
-      4: { cellWidth: 22 },
-      5: { cellWidth: 22 },
-      6: { cellWidth: 25 },
-      7: { cellWidth: 20 }
-    }
-  });
-  
-  // Save the PDF
-  const pdfOutput = doc.output('datauristring');
-  return pdfOutput;
-};
-
-// Generate CMR PDF
 export const generateCMRPDF = async (shipmentId: string, options?: PdfGenerationOptions): Promise<string> => {
   const { shipment, details, addressSettings } = await fetchShipmentData(shipmentId);
   
@@ -336,11 +31,11 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   // Set up the document
   doc.setFont("helvetica", "bold");
   
-  // Add header - increased font size to match template
-  doc.setFontSize(20);
+  // Add header
+  doc.setFontSize(16);
   doc.text('CRM', 105, 15, { align: 'center' });
-  doc.setFontSize(14);
-  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 105, 25, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 105, 22, { align: 'center' });
   
   // Add border around entire page
   doc.rect(10, 30, 190, 250);
@@ -349,30 +44,30 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.rect(10, 30, 95, 40); // Left box for sender
   doc.rect(105, 30, 95, 40); // Right box for declaration
   
-  // Add "Sender" label - updated font size to match template
-  doc.setFontSize(10);
+  // Add "Sender" label - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
   doc.text('SENDER (NAME, ADDRESS, COUNTRY)', 12, 37);
   
-  // Sender content - updated font size and position to match template
+  // Sender content
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   if (addressSettings) {
-    doc.text(addressSettings.sender_name, 12, 45);
-    doc.text(`Unit ${addressSettings.sender_address}`, 12, 50);
-    doc.text(`${addressSettings.sender_city}`, 12, 55);
-    doc.text(`${addressSettings.sender_postal_code}`, 12, 60);
-    doc.text(`${addressSettings.sender_country}`, 12, 65);
+    doc.text(addressSettings.sender_name, 12, 40);
+    doc.text(`Unit ${addressSettings.sender_address}`, 12, 45);
+    doc.text(`${addressSettings.sender_city}`, 12, 50);
+    doc.text(`${addressSettings.sender_postal_code}`, 12, 55);
+    doc.text(`${addressSettings.sender_country}`, 12, 60);
   } else {
-    doc.text('Asendia', 12, 45);
-    doc.text('Unit 8-12 The Heathrow Estate Silver Jubilee way', 12, 50);
-    doc.text('London', 12, 55);
+    doc.text('Asendia UK', 12, 40);
+    doc.text('Unit 1-12 Heathrow Estate', 12, 45);
+    doc.text('Silver Jubilee way', 12, 50);
+    doc.text('Hounslow', 12, 55);
     doc.text('TW4 6NF', 12, 60);
-    doc.text('UK', 12, 65);
   }
   
-  // Add "Declaration" label on the right - updated to match template
-  doc.setFontSize(10);
+  // Add "Declaration" label on the right - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
   doc.text('INTERNATIONAL CONSIGNMENT NOTE', 107, 37);
   
@@ -380,96 +75,93 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.rect(10, 70, 95, 40); // Left box for consignee
   doc.rect(105, 70, 95, 40); // Right box for sender/agent reference
   
-  // Add "Consignee" label - updated font size to match template
-  doc.setFontSize(10);
+  // Add "Consignee" label - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS) (SIGNATURE (NAME, ADDRESS, PAYS)', 12, 77);
+  doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS)', 12, 75);
   
-  // Consignee content - updated font size and position to match template
+  // Consignee content
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   if (addressSettings) {
     doc.text(addressSettings.receiver_name, 12, 85);
-    doc.text(addressSettings.receiver_address, 12, 90);
-    doc.text(`${addressSettings.receiver_country}`, 12, 95);
+    doc.text(addressSettings.receiver_address, 12, 95);
+    doc.text(`${addressSettings.receiver_country}`, 12, 100);
   } else {
-    doc.text('La Poste', 12, 85);
-    doc.text('Rue Du Haute De Laval, Roissy 95,', 12, 90);
+    doc.text('La Poste, Rte Du Baste De Laval, Relays 95,', 12, 85);
     doc.text('France', 12, 95);
   }
   
-  // Add "Sender/Agent reference" label on the right - updated to match template
-  doc.setFontSize(10);
+  // Add "Sender/Agent reference" label on the right - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text("SENDER/AGENT REFERENCE (RÉFÉRENCE DE L'EXPÉDITEUR/L'AGENT)", 107, 77);
+  doc.text("SENDER/AGENT REFERENCE", 107, 75);
   
   // Third row with carrier information
   doc.rect(10, 110, 95, 40); // Left box
   doc.rect(105, 110, 95, 40); // Right box
   
-  // Add carrier label - updated font size to match template
-  doc.setFontSize(10);
+  // Add carrier label - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, 117);
+  doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, 115);
   
-  // Carrier content - updated font size and position to match template
+  // Carrier content
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(`Carrier Name:`, 12, 125);
-  doc.text(`TRANSPORTER - ${shipment.subcarrier?.name || 'Sub transporter'}`, 70, 125);
+  doc.text(`${shipment.carrier?.name || 'N/A'} ${shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ''}`, 50, 125);
   doc.text(`TRUCK & TRAILER:`, 12, 135);
-  doc.text(`${shipment.truck_reg_no || 'N/A'} / ${shipment.trailer_reg_no || 'N/A'}`, 70, 135);
+  doc.text(`${shipment.truck_reg_no || 'N/A'} / ${shipment.trailer_reg_no || 'N/A'}`, 50, 135);
   
   // Fourth row
   doc.rect(10, 150, 95, 70); // Left box
   doc.rect(105, 150, 95, 70); // Right box
   
-  // Add goods label - updated font size to match template
-  doc.setFontSize(10);
+  // Add goods label - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, 157);
+  doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, 155);
   
-  // Goods content - updated font size and position to match template
+  // Goods content
   doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
   doc.text(`Pallets: ${totalPallets}`, 12, 165);
   doc.text(`Bags: ${totalBags}`, 12, 175);
   doc.text(`SEAL #1 Number: ${shipment.seal_no || 'N/A'}`, 12, 185);
-  doc.text(`SEAL #2 Number:`, 12, 195);
+  doc.text(`SEAL #2 Number: `, 12, 195);
   doc.text(`Description of Goods: cross border eCommerce B2C parcels`, 12, 205);
   
-  // Add weight label on the right - updated font size to match template
-  doc.setFontSize(10);
+  // Add weight label on the right - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('GROSS WEIGHT (KG)', 107, 157);
-  doc.text('VOLUME (M³)', 160, 157);
+  doc.text('GROSS WEIGHT (KG)', 107, 155);
+  doc.text('VOLUME (M³)', 155, 155);
   
-  // Weight content - updated font size and position to match template
+  // Weight content
   doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${totalGrossWeight.toFixed(2)}`, 135, 180);
+  doc.text(`${totalGrossWeight.toFixed(2)}`, 115, 170);
   
   // Fifth row
   doc.rect(10, 220, 190, 20); // Full width box
   
-  // Charges label - updated font size to match template
-  doc.setFontSize(10);
+  // Charges label - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CARRIAGE CHARGES (FRAIS DE TRANSPORT)', 12, 227);
+  doc.text('CARRIAGE CHARGES (FRAIS DE TRANSPORT)', 12, 225);
   
   // Sixth row with signature boxes
   doc.rect(10, 240, 63, 40); // First signature box
   doc.rect(73, 240, 63, 40); // Second signature box
   doc.rect(136, 240, 64, 40); // Third signature box
   
-  // Signature labels - updated font size to match template
-  doc.setFontSize(10);
+  // Signature labels - Standardized to 6.5pt bold
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('GOODS RECEIVED (MERCHANDISE REÇUE)', 12, 247);
-  doc.text('SIGNATURE OF CARRIER (SIGNATURE DU TRANSPORTEUR)', 75, 247);
-  doc.text('FOR GOODS, SIGNATURE (LIEU DE LA SIGNATURE)', 138, 247);
+  doc.text('GOODS RECEIVED (MERCHANDISE REÇUE)', 12, 245);
+  doc.text('SIGNATURE OF CARRIER', 75, 245);
+  doc.text('FOR GOODS, SIGNATURE', 138, 245);
   
-  // Signature date fields - updated font size and position to match template
+  // Signature date fields
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text('Date:', 12, 270);
@@ -479,27 +171,4 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
   return pdfOutput;
-};
-
-// Download PDF - now supports both web browsers and mobile devices
-export const downloadPDF = async (dataUri: string, fileName: string, isNativeMobile: boolean = false) => {
-  try {
-    if (isNativeMobile) {
-      // On mobile, save to device storage
-      const response = await fetch(dataUri);
-      const blob = await response.blob();
-      await saveFile(blob, fileName);
-    } else {
-      // On web, use standard browser download
-      const link = document.createElement('a');
-      link.href = dataUri;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  } catch (error) {
-    console.error('Error downloading PDF:', error);
-    throw new Error('Failed to download or save the PDF file');
-  }
 };
