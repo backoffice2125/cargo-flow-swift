@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { generatePreAlertPDF, generateCMRPDF, downloadPDF, PdfGenerationOptions } from "@/utils/pdfGenerator";
 import { isNativeMobile } from "@/utils/mobileHelper";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 type PDFContextType = {
   generatePreAlertPDF: (shipmentId: string, options?: PdfGenerationOptions) => Promise<void>;
@@ -118,6 +119,3 @@ export const usePDF = () => {
   }
   return context;
 };
-
-// Import supabase at the top to fix reference error
-import { supabase } from "@/integrations/supabase/client";

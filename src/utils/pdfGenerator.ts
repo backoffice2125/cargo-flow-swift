@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -394,7 +393,7 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   
   // Add "Sender/Agent reference" label on the right
   doc.setFontSize(8);
-  doc.text('SENDER/AGENT REFERENCE (RÉFÉRENCE DE L'EXPÉDITEUR/L'AGENT)', 107, 75);
+  doc.text("SENDER/AGENT REFERENCE (RÉFÉRENCE DE L'EXPÉDITEUR/L'AGENT)", 107, 75);
   
   // Third row with carrier information
   doc.rect(10, 110, 95, 40); // Left box
