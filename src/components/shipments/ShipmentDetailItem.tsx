@@ -48,14 +48,14 @@ const ShipmentDetailItem: React.FC<ShipmentDetailItemProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      {showActions && (
+      {showActions && onEdit && onDelete && (
         <div className="flex justify-end space-x-2 mb-2">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={(e) => {
               e.stopPropagation();
-              if (onEdit) onEdit(detail.id);
+              onEdit(detail.id);
             }}
           >
             <Edit className="h-4 w-4 mr-2" /> Edit
@@ -66,7 +66,7 @@ const ShipmentDetailItem: React.FC<ShipmentDetailItemProps> = ({
             className="text-destructive hover:bg-destructive/10" 
             onClick={(e) => {
               e.stopPropagation();
-              if (onDelete) onDelete(detail.id);
+              onDelete(detail.id);
             }}
           >
             <Trash className="h-4 w-4 mr-2" /> Delete

@@ -608,22 +608,20 @@ const ShipmentDetails = () => {
             <h1 className="text-3xl font-bold">Shipment Details</h1>
           </div>
           <div className="flex items-center gap-2">
-            {shipment?.status === 'pending' && (
+            {shipment?.status === 'pending' ? (
               <>
                 <Button 
                   variant="outline"
                   onClick={handleEditShipment}
                   disabled={editShipmentMode}
                 >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
+                  <Pencil className="h-4 w-4 mr-2" /> Edit
                 </Button>
                 <Button 
                   variant="destructive"
                   onClick={handleDeleteShipment}
                 >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Delete
+                  <Trash className="h-4 w-4 mr-2" /> Delete
                 </Button>
                 <Button 
                   variant="default"
@@ -633,6 +631,14 @@ const ShipmentDetails = () => {
                   Mark as Completed
                 </Button>
               </>
+            ) : (
+              <Button 
+                variant="outline"
+                onClick={handleEditShipment}
+                disabled={editShipmentMode}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> Edit
+              </Button>
             )}
           </div>
         </div>
@@ -646,7 +652,7 @@ const ShipmentDetails = () => {
                   View details for this shipment
                 </CardDescription>
               </div>
-              {shipment?.status === 'pending' && !editShipmentMode && (
+              {!editShipmentMode && (
                 <Button variant="outline" onClick={handleEditShipment}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
@@ -1002,7 +1008,12 @@ const ShipmentDetails = () => {
                     
                     {expandedDetails[detail.id] && (
                       <div className="p-4 pt-0 border-t">
-                        <ShipmentDetailItem detail={detail} />
+                        <ShipmentDetailItem 
+                          detail={detail} 
+                          onEdit={shipment.status === 'pending' ? handleEditDetail : undefined}
+                          onDelete={shipment.status === 'pending' ? handleDeleteDetail : undefined}
+                          showActions={false}
+                        />
                       </div>
                     )}
                   </div>
