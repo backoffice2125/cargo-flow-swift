@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +9,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import WelcomeWidget from '@/components/dashboard/WelcomeWidget';
+import ShipmentStatsWidget from '@/components/dashboard/ShipmentStatsWidget';
 
 interface Shipment {
   id: string;
@@ -155,33 +156,9 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <Link to="/shipments/new">
-            <Button className="swift-button-primary">
-              <Plus className="h-4 w-4 mr-2" />
-              New Shipment
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard 
-            title="Total Pending Shipments" 
-            value={pendingShipments.length.toString()} 
-            icon={<Truck className="h-5 w-5" />} 
-            trend="+5% from last week"
-          />
-          <StatCard 
-            title="Total Completed Shipments" 
-            value={completedShipments.length.toString()} 
-            icon={<Package className="h-5 w-5" />}
-          />
-          <StatCard 
-            title="Total Weight Shipped" 
-            value="1,254 kg" 
-            icon={<TrendingUp className="h-5 w-5" />}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <WelcomeWidget />
+          <ShipmentStatsWidget />
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 my-4">
