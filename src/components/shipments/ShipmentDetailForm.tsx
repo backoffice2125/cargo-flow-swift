@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,8 +106,8 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   });
   
   const [selectedService, setSelectedService] = useState<string>("");
-  
   const [filteredFormats, setFilteredFormats] = useState<Format[]>([]);
+  const [showBagsField, setShowBagsField] = useState(false);
   
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -215,6 +216,9 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
             doe_id: data.doe_id || ""
           });
           
+          // Set show bags field based on pallets value
+          setShowBagsField(data.number_of_pallets <= 0);
+          
           if (data.service_id) {
             const service = services.find(s => s.id === data.service_id);
             if (service) {
@@ -265,17 +269,32 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     }
   }, [formData.service_id, services, formats]);
   
+  // Handle pallets value change to show/hide bags field
   useEffect(() => {
-    const bagWeight = 0.125;
-    const baseTareWeight = 25.7;
+    const palletsValue = formData.number_of_pallets;
     
-    if (formData.number_of_bags > 0) {
-      const newTareWeight = baseTareWeight + (formData.number_of_bags * bagWeight);
-      setFormData(prev => ({ ...prev, tare_weight: Number(newTareWeight.toFixed(2)) }));
+    if (palletsValue <= 0) {
+      setShowBagsField(true);
+      // Reset tare weight when switching to bags
+      setFormData(prev => {
+        // Calculate tare weight based on bags
+        const bagsWeight = prev.number_of_bags * 0.125;
+        return { ...prev, tare_weight: Number(bagsWeight.toFixed(3)) };
+      });
     } else {
-      setFormData(prev => ({ ...prev, tare_weight: baseTareWeight }));
+      setShowBagsField(false);
+      // Reset to default tare weight when using pallets
+      setFormData(prev => ({ ...prev, tare_weight: 25.7, number_of_bags: 0 }));
     }
-  }, [formData.number_of_bags]);
+  }, [formData.number_of_pallets]);
+  
+  // Handle bags value change to update tare weight
+  useEffect(() => {
+    if (showBagsField && formData.number_of_bags >= 0) {
+      const bagsWeight = formData.number_of_bags * 0.125;
+      setFormData(prev => ({ ...prev, tare_weight: Number(bagsWeight.toFixed(3)) }));
+    }
+  }, [formData.number_of_bags, showBagsField]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -537,29 +556,33 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               </div>
             )}
             
-            <div className="space-y-2">
-              <Label htmlFor="number_of_pallets">Number of Pallets</Label>
-              <Input
-                id="number_of_pallets"
-                name="number_of_pallets"
-                type="number"
-                min="0"
-                value={formData.number_of_pallets}
-                onChange={handleChange}
-              />
-            </div>
+            {!showBagsField && (
+              <div className="space-y-2">
+                <Label htmlFor="number_of_pallets">Number of Pallets</Label>
+                <Input
+                  id="number_of_pallets"
+                  name="number_of_pallets"
+                  type="number"
+                  min="0"
+                  value={formData.number_of_pallets}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
             
-            <div className="space-y-2">
-              <Label htmlFor="number_of_bags">Number of Bags</Label>
-              <Input
-                id="number_of_bags"
-                name="number_of_bags"
-                type="number"
-                min="0"
-                value={formData.number_of_bags}
-                onChange={handleChange}
-              />
-            </div>
+            {showBagsField && (
+              <div className="space-y-2">
+                <Label htmlFor="number_of_bags">Number of Bags</Label>
+                <Input
+                  id="number_of_bags"
+                  name="number_of_bags"
+                  type="number"
+                  min="0"
+                  value={formData.number_of_bags}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="gross_weight">Gross Weight (kg)*</Label>
@@ -583,9 +606,15 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 step="0.01"
                 min="0"
                 value={formData.tare_weight}
-                disabled
+                onChange={showBagsField ? undefined : handleChange}
+                readOnly={showBagsField}
+                className={showBagsField ? "bg-muted cursor-not-allowed" : ""}
               />
-              <p className="text-xs text-muted-foreground">Auto-calculated based on number of bags</p>
+              <p className="text-xs text-muted-foreground">
+                {showBagsField 
+                  ? "Auto-calculated based on number of bags (0.125 kg per bag)" 
+                  : "Default value for pallets: 25.7 kg"}
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -637,3 +666,4 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
 };
 
 export default ShipmentDetailForm;
+
