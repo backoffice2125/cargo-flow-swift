@@ -20,12 +20,31 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
+  // Force theme update when component mounts
+  useEffect(() => {
+    if (mounted && theme) {
+      document.documentElement.classList.remove('light', 'dark')
+      document.documentElement.classList.add(theme === 'system' 
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        : theme)
+    }
+  }, [mounted, theme])
+
   if (!mounted) {
     return (
       <Button variant="outline" size="icon" className="opacity-0">
         <Sun className="h-[1.2rem] w-[1.2rem]" />
       </Button>
     )
+  }
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme)
+    // Force theme change by directly manipulating the class
+    document.documentElement.classList.remove('light', 'dark')
+    document.documentElement.classList.add(newTheme === 'system' 
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      : newTheme)
   }
 
   return (
@@ -54,21 +73,21 @@ export function ThemeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="animate-in fade-in-80 border border-primary/10 shadow-lg">
         <DropdownMenuItem 
-          onClick={() => setTheme("light")}
+          onClick={() => handleThemeChange("light")}
           className={`${theme === "light" ? "bg-swift-blue-50 text-swift-blue-600" : ""} hover:bg-swift-blue-50 hover:text-swift-blue-600 transition-colors`}
         >
           <Sun className="h-4 w-4 mr-2" />
           Light
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={() => setTheme("dark")}
+          onClick={() => handleThemeChange("dark")}
           className={`${theme === "dark" ? "bg-swift-blue-50 text-swift-blue-600" : ""} hover:bg-swift-blue-50 hover:text-swift-blue-600 transition-colors`}
         >
           <Moon className="h-4 w-4 mr-2" />
           Dark
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={() => setTheme("system")}
+          onClick={() => handleThemeChange("system")}
           className={`${theme === "system" ? "bg-swift-blue-50 text-swift-blue-600" : ""} hover:bg-swift-blue-50 hover:text-swift-blue-600 transition-colors`}
         >
           <Monitor className="h-4 w-4 mr-2" />
