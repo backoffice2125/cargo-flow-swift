@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { motion } from 'framer-motion';
+import { Scale, Package, TrendingUp, ArrowRight } from 'lucide-react';
 
 interface ShipmentStats {
   totalCompletedShipments: number;
@@ -102,44 +104,102 @@ const ShipmentStatsWidget = () => {
     };
   }, []);
 
+  const StatItem = ({ title, value, icon, className = "" }) => (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className={`bg-background rounded-lg p-4 shadow-sm border border-primary/10 ${className}`}
+    >
+      <div className="flex items-center mb-2">
+        <div className="p-2 bg-swift-blue-50 rounded-md text-swift-blue-600 mr-3">
+          {icon}
+        </div>
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      </div>
+      <p className="text-2xl font-bold text-foreground">{value}</p>
+    </motion.div>
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Shipment Statistics</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed Shipments</p>
-                <p className="text-xl font-bold">{stats.totalCompletedShipments}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+    >
+      <Card className="border-primary/10 shadow-sm hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-2 bg-gradient-to-r from-swift-blue-50 to-transparent">
+          <CardTitle className="text-xl text-swift-blue-800 flex items-center">
+            <Scale className="h-5 w-5 mr-2 text-swift-blue-600" />
+            Shipment Statistics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <motion.div 
+                animate={{ 
+                  rotate: 360,
+                  transition: { duration: 1.5, repeat: Infinity, ease: "linear" }
+                }}
+                className="w-8 h-8 border-3 border-swift-blue-300 border-t-swift-blue-600 rounded-full"
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <StatItem 
+                  title="Completed Shipments" 
+                  value={stats.totalCompletedShipments}
+                  icon={<Package className="h-4 w-4" />}
+                />
+                <StatItem 
+                  title="Total Gross Weight" 
+                  value={`${stats.totalGrossWeight.toFixed(2)} kg`}
+                  icon={<Scale className="h-4 w-4" />}
+                />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Gross Weight</p>
-                <p className="text-xl font-bold">{stats.totalGrossWeight.toFixed(2)} kg</p>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <StatItem 
+                  title="Total Net Weight" 
+                  value={`${stats.totalNetWeight.toFixed(2)} kg`}
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  className="bg-swift-blue-50/50"
+                />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Net Weight</p>
-                <p className="text-xl font-bold">{stats.totalNetWeight.toFixed(2)} kg</p>
+              
+              <div className="relative">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="absolute left-0 top-1/2 h-0.5 bg-swift-blue-100 transform -translate-y-1/2 z-0"
+                />
+                <div className="relative z-10 flex justify-center my-2">
+                  <div className="bg-background px-4 text-sm text-muted-foreground">
+                    Customer Breakdown
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Asendia Net Weight</p>
-                <p className="text-xl font-bold">{stats.totalAsendiaNetWeight.toFixed(2)} kg</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm text-muted-foreground">Other Customers Net Weight</p>
-                <p className="text-xl font-bold">{stats.totalOtherNetWeight.toFixed(2)} kg</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <StatItem 
+                  title="Asendia Net Weight" 
+                  value={`${stats.totalAsendiaNetWeight.toFixed(2)} kg`}
+                  icon={<ArrowRight className="h-4 w-4" />}
+                />
+                <StatItem 
+                  title="Other Customers Net Weight" 
+                  value={`${stats.totalOtherNetWeight.toFixed(2)} kg`}
+                  icon={<ArrowRight className="h-4 w-4" />}
+                />
               </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
