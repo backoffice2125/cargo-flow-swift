@@ -31,18 +31,22 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="border border-primary/20 bg-background shadow-sm">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="border border-primary/20 bg-background shadow-sm rounded-full hover:bg-swift-blue-50"
+        >
           <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.3 }}
           >
             {theme === "light" ? (
-              <Sun className="h-[1.2rem] w-[1.2rem] text-swift-blue-600" />
+              <Sun className="h-5 w-5 text-swift-blue-600" />
             ) : theme === "dark" ? (
-              <Moon className="h-[1.2rem] w-[1.2rem] text-swift-blue-600" />
+              <Moon className="h-5 w-5 text-swift-blue-600" />
             ) : (
-              <Monitor className="h-[1.2rem] w-[1.2rem] text-swift-blue-600" />
+              <Monitor className="h-5 w-5 text-swift-blue-600" />
             )}
           </motion.div>
           <span className="sr-only">Toggle theme</span>
