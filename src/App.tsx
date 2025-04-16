@@ -20,7 +20,7 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   return (
-    <BrowserRouter> {/* Set base path */}
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
         <PDFProvider>
           <AuthProvider>
