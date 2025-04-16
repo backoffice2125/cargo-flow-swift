@@ -4,7 +4,7 @@
   "version": "0.0.0",
    "homepage": "https://backoffice2125.github.io/cargo-flow-swift",
   "type": "module",
-  "scripts": {
+"scripts": {
   "dev": "vite",
   "build": "vite build",
   "build:dev": "vite build --mode development",
@@ -13,6 +13,7 @@
   "predeploy": "npm run build",
   "deploy": "gh-pages -d dist"
 }
+
 ,
   "dependencies": {
     "@capacitor/cli": "^7.2.0",
