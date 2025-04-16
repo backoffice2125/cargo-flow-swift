@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -19,9 +18,9 @@ import SplashScreen from '@/components/SplashScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/cargo-flow-swift/"> {/* Set base path */}
       <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
         <PDFProvider>
           <AuthProvider>
