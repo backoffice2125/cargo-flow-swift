@@ -20,7 +20,7 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   return (
-    <BrowserRouter basename="/cargo-flow-swift/"> {/* Set base path */}
+    <BrowserRouter> {/* Set base path */}
       <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
         <PDFProvider>
           <AuthProvider>
