@@ -4,7 +4,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/cargo-flow-swift/', // Set the base path for subpath deployment
+  base: '/',
   server: {
     host: '0.0.0.0',
     port: 8080,
