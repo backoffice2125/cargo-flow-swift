@@ -2,7 +2,6 @@
   "name": "vite_react_shadcn_ts",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://backoffice2125.github.io/cargo-flow-swift",
   "type": "module",
   "scripts": {
     "dev": "vite",
