@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Table,
@@ -24,9 +25,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,99 +39,149 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
-// Mock user data
-const mockUsers = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "admin",
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    role: "user",
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Alice Johnson",
-    email: "alice.johnson@example.com",
-    role: "user",
-    status: "inactive",
-  },
-  {
-    id: "4",
-    name: "Bob Brown",
-    email: "bob.brown@example.com",
-    role: "moderator",
-    status: "active",
-  },
-  {
-    id: "5",
-    name: "Charlie Davis",
-    email: "charlie.davis@example.com",
-    role: "user",
-    status: "active",
-  },
-];
+// Type definition for profile data
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: 'admin' | 'manager' | 'user';
+  created_at: string;
+  updated_at: string;
+}
 
-// Fetch users function (mock)
-const fetchUsers = async () => {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockUsers;
+// Fetch profiles function (using Supabase)
+const fetchProfiles = async (): Promise<Profile[]> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching profiles:", error);
+    throw new Error(error.message);
+  }
+  
+  return data || [];
 };
 
 const UserManagement = () => {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
 
-  // Query to fetch users
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
+  // Query to fetch profiles
+  const { data: profiles = [], isLoading, refetch } = useQuery({
+    queryKey: ["profiles"],
+    queryFn: fetchProfiles,
   });
 
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "User Added",
-      description: "New user has been added successfully",
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const role = formData.get('role') as 'admin' | 'manager' | 'user';
+    
+    // In a real app, you would need to first create an auth user
+    // and then insert into the profiles table
+    const { error } = await supabase.from('profiles').insert({
+      first_name: firstName,
+      last_name: lastName,
+      role: role
     });
-    setIsAddDialogOpen(false);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "User Added",
+        description: "New user has been added successfully",
+      });
+      refetch();
+      setIsAddDialogOpen(false);
+    }
   };
 
-  const handleEditUser = (e) => {
+  const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "User Updated",
-      description: "User has been updated successfully",
-    });
-    setIsEditDialogOpen(false);
+    if (!selectedUser) return;
+    
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const role = formData.get('role') as 'admin' | 'manager' | 'user';
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        role: role
+      })
+      .eq('id', selectedUser.id);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "User Updated",
+        description: "User has been updated successfully",
+      });
+      refetch();
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+    }
   };
 
-  const handleDeleteUser = (userId) => {
-    // In real app, this would call an API to delete the user
-    toast({
-      title: "User Deleted",
-      description: "User has been deleted successfully",
-    });
+  const handleDeleteUser = async (userId: string) => {
+    // In a real app with auth, you would need to delete from auth.users
+    // which would cascade to profiles due to the reference
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+      
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "User Deleted",
+        description: "User has been deleted successfully",
+      });
+      refetch();
+    }
   };
 
-  const getRoleBadgeColor = (role) => {
+  const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      case "moderator":
+      case "manager":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
+  };
+
+  const getFullName = (profile: Profile) => {
+    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
   };
 
   return (
@@ -152,30 +200,31 @@ const UserManagement = () => {
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Create a new user account by filling out the form below.
+                  Create a new user profile by filling out the form below.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddUser}>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
+                    <Label htmlFor="firstName" className="text-right">
+                      First Name
                     </Label>
                     <Input
-                      id="name"
-                      placeholder="Enter name"
+                      id="firstName"
+                      name="firstName"
+                      placeholder="Enter first name"
                       className="col-span-3"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email
+                    <Label htmlFor="lastName" className="text-right">
+                      Last Name
                     </Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter email"
+                      id="lastName"
+                      name="lastName"
+                      placeholder="Enter last name"
                       className="col-span-3"
                       required
                     />
@@ -184,13 +233,13 @@ const UserManagement = () => {
                     <Label htmlFor="role" className="text-right">
                       Role
                     </Label>
-                    <Select>
+                    <Select name="role" defaultValue="user">
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="moderator">Moderator</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
                         <SelectItem value="user">User</SelectItem>
                       </SelectContent>
                     </Select>
@@ -211,40 +260,38 @@ const UserManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={4} className="text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
+                ) : profiles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      No users found
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                  profiles.map((profile) => (
+                    <TableRow key={profile.id}>
+                      <TableCell className="font-medium">{getFullName(profile)}</TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={getRoleBadgeColor(user.role)}
+                          className={getRoleBadgeColor(profile.role)}
                         >
-                          {user.role}
+                          {profile.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            user.status === "active" ? "default" : "secondary"
-                          }
-                        >
-                          {user.status}
-                        </Badge>
+                        {new Date(profile.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -252,7 +299,7 @@ const UserManagement = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setSelectedUser(user);
+                              setSelectedUser(profile);
                               setIsEditDialogOpen(true);
                             }}
                           >
@@ -262,7 +309,7 @@ const UserManagement = () => {
                             variant="ghost"
                             size="icon"
                             className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => handleDeleteUser(profile.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -290,54 +337,41 @@ const UserManagement = () => {
             <form onSubmit={handleEditUser}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-name" className="text-right">
-                    Name
+                  <Label htmlFor="firstName" className="text-right">
+                    First Name
                   </Label>
                   <Input
-                    id="edit-name"
-                    defaultValue={selectedUser.name}
+                    id="firstName"
+                    name="firstName"
+                    defaultValue={selectedUser.first_name || ''}
                     className="col-span-3"
                     required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-email" className="text-right">
-                    Email
+                  <Label htmlFor="lastName" className="text-right">
+                    Last Name
                   </Label>
                   <Input
-                    id="edit-email"
-                    type="email"
-                    defaultValue={selectedUser.email}
+                    id="lastName"
+                    name="lastName"
+                    defaultValue={selectedUser.last_name || ''}
                     className="col-span-3"
                     required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-role" className="text-right">
+                  <Label htmlFor="role" className="text-right">
                     Role
                   </Label>
-                  <Select defaultValue={selectedUser.role}>
+                  <Select name="role" defaultValue={selectedUser.role}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="user">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-status" className="text-right">
-                    Status
-                  </Label>
-                  <Select defaultValue={selectedUser.status}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
