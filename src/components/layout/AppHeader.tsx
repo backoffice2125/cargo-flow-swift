@@ -11,7 +11,7 @@ const AppHeader = () => {
       <div className="flex-1 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:hidden" />
-          <Link to="/" className="text-xl font-bold text-swift-blue-600">
+          <Link to="/" className="text-xl font-bold text-primary">
             Swift
           </Link>
         </div>

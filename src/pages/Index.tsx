@@ -2,16 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, TrendingUp, Truck, Package } from "lucide-react";
+import { Plus, Search, Filter } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import WelcomeWidget from '@/components/dashboard/WelcomeWidget';
-import ShipmentStatsWidget from '@/components/dashboard/ShipmentStatsWidget';
+import DashboardOverview from '@/components/dashboard/DashboardOverview';
+import ShipmentTable from '@/components/shipments/ShipmentTable';
+import ShipmentStatsDrawer from '@/components/shipments/ShipmentStatsDrawer';
 
 interface Shipment {
   id: string;
@@ -26,28 +26,6 @@ interface Shipment {
   carrier: { name: string } | null;
   subcarrier: { name: string } | null;
 }
-
-const StatCard = ({ title, value, icon, trend }: { title: string, value: string, icon: React.ReactNode, trend?: string }) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <h3 className="text-2xl font-bold mt-1">{value}</h3>
-          {trend && (
-            <div className="flex items-center mt-1 text-swift-teal-500 text-sm">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              <span>{trend}</span>
-            </div>
-          )}
-        </div>
-        <div className="p-2 bg-swift-blue-100 rounded-md text-swift-blue-500">
-          {icon}
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
 
 const ShipmentCard = ({ shipment }: { shipment: Shipment }) => (
   <div className="swift-card">
@@ -80,6 +58,8 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
@@ -163,13 +143,17 @@ const Index = () => {
       (shipment.subcarrier?.name.toLowerCase().includes(searchTermLower))
     );
   });
+  
+  const handleSelectShipment = (shipment: Shipment) => {
+    setSelectedShipment(shipment);
+    setDrawerOpen(true);
+  };
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <WelcomeWidget />
-          <ShipmentStatsWidget />
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
+          <DashboardOverview />
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 my-4">
@@ -182,17 +166,25 @@ const Index = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="flex gap-2">
-            <Filter className="h-4 w-4" />
-            Filters
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+            <Link to="/shipments/new">
+              <Button className="flex gap-2">
+                <Plus className="h-4 w-4" />
+                New Shipment
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList>
             <TabsTrigger value="pending" className="flex gap-2">
               Pending
-              <span className="bg-swift-blue-100 text-swift-blue-800 px-2 py-0.5 rounded-full text-xs">
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs">
                 {pendingShipments.length}
               </span>
             </TabsTrigger>
@@ -226,24 +218,23 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : filteredCompletedShipments.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCompletedShipments.map((shipment) => (
-                  <ShipmentCard key={shipment.id} shipment={shipment} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground">No completed shipments found</p>
-              </div>
-            )}
+            <ShipmentTable 
+              shipments={filteredCompletedShipments} 
+              onSelectShipment={handleSelectShipment}
+              loading={loading} 
+            />
           </TabsContent>
         </Tabs>
       </div>
+      
+      <ShipmentStatsDrawer 
+        shipment={selectedShipment}
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedShipment(null);
+        }}
+      />
     </AppLayout>
   );
 };

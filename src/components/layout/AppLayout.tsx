@@ -16,7 +16,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       
       <SidebarInset>
         <AppHeader />
-        <main className="flex-1 overflow-auto p-6 mt-16">
+        <main className="flex-1 overflow-auto p-4 mt-16">
           {children}
         </main>
       </SidebarInset>
