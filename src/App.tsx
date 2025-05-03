@@ -17,6 +17,7 @@ import DropdownManagement from '@/pages/DropdownManagement';
 import ManageAddresses from '@/pages/ManageAddresses';
 import NotificationsPage from '@/pages/NotificationsPage';
 import AddressSettingsPage from '@/pages/AddressSettings';
+import UserManagement from '@/pages/UserManagement'; // Add import
 import SplashScreen from '@/components/SplashScreen';
 
 function App() {
@@ -56,6 +57,11 @@ function App() {
                     <Route path="/manage/addresses" element={
                       <ProtectedRoute>
                         <ManageAddresses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/manage/users" element={
+                      <ProtectedRoute>
+                        <UserManagement />
                       </ProtectedRoute>
                     } />
                     <Route path="/address-settings" element={
