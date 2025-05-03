@@ -13,11 +13,21 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       document.documentElement.classList.add(isDark ? 'dark' : 'light')
     } else {
-      document.documentElement.classList.add(
-        storedTheme === 'system' 
-          ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-          : storedTheme
+      // Remove all theme classes first
+      document.documentElement.classList.remove(
+        'light', 'dark', 'dark-green', 'high-contrast', 
+        'sepia', 'corporate', 'monochrome', 'winter', 'spring'
       )
+      
+      // Handle system preference for default themes
+      if (storedTheme === 'system') {
+        document.documentElement.classList.add(
+          window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        )
+      } else {
+        // Add the stored theme class
+        document.documentElement.classList.add(storedTheme)
+      }
     }
   }, [])
   

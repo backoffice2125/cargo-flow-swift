@@ -27,7 +27,8 @@ function App() {
 
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="swift-ui-theme" enableSystem={true} 
+        themes={['light', 'dark', 'dark-green', 'high-contrast', 'sepia', 'corporate', 'monochrome', 'winter', 'spring']}>
         <QueryClientProvider client={queryClient}>
           <PDFProvider>
             <AuthProvider>
