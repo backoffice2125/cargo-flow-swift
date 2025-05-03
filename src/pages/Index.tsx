@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,12 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get the active tab from URL parameters
+  const urlParams = new URLSearchParams(location.search);
+  const activeTab = urlParams.get('tab') || 'pending';
   
   useEffect(() => {
     const fetchShipments = async () => {
@@ -124,6 +131,10 @@ const Index = () => {
       fetchShipments();
     }
   }, [user, toast]);
+  
+  const handleTabChange = (value: string) => {
+    navigate(`/?tab=${value}`);
+  };
   
   const pendingShipments = shipments.filter(
     (shipment) => shipment.status === "pending"
@@ -177,7 +188,7 @@ const Index = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="pending" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList>
             <TabsTrigger value="pending" className="flex gap-2">
               Pending

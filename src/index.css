@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
  
     --secondary: 210 40% 96.1%;
@@ -31,24 +31,16 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 221.2 83.2% 53.3%;
  
     --radius: 0.5rem;
-    
-    /* Swift custom colors */
-    --swift-blue-50: 210 100% 97%;
-    --swift-blue-100: 210 100% 95%;
-    --swift-blue-200: 210 100% 90%;
-    --swift-blue-300: 210 100% 80%;
-    --swift-blue-400: 210 100% 70%;
-    --swift-blue-500: 210 100% 60%;
-    --swift-blue-600: 210 100% 50%;
-    --swift-blue-700: 210 100% 40%;
-    --swift-blue-800: 210 100% 30%;
-    --swift-blue-900: 210 100% 20%;
-    
-    --swift-teal-500: 175 70% 41%;
-    --swift-teal-600: 175 70% 35%;
+
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
   }
  
   .dark {
@@ -61,7 +53,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
  
     --secondary: 217.2 32.6% 17.5%;
@@ -78,7 +70,14 @@
  
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 224.3 76.3% 48%;
+
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 224.3 76.3% 48%;
   }
 }
  
@@ -88,15 +87,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
-  .swift-button-primary {
-    @apply bg-[hsl(var(--swift-blue-600))] text-white hover:bg-[hsl(var(--swift-blue-700))] disabled:bg-[hsl(var(--swift-blue-200))];
-  }
-  
   .swift-card {
-    @apply rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md;
+    @apply bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow-sm;
   }
 }
