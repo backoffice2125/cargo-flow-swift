@@ -85,9 +85,11 @@ const UserManagement = () => {
     const lastName = formData.get('lastName') as string;
     const role = formData.get('role') as 'admin' | 'manager' | 'user';
     
-    // In a real app, you would need to first create an auth user
-    // and then insert into the profiles table
+    // Generate a random UUID for the id field
+    const newId = crypto.randomUUID();
+    
     const { error } = await supabase.from('profiles').insert({
+      id: newId,
       first_name: firstName,
       last_name: lastName,
       role: role
