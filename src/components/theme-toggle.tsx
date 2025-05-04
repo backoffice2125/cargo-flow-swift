@@ -1,5 +1,5 @@
 
-import { Moon, Sun, Monitor, Palette, ColorPicker, CloudSun, CloudMoon, SunDim, Contrast } from "lucide-react"
+import { Moon, Sun, Monitor, Palette, PaintBucket, CloudSun, CloudMoon, SunDim, Contrast } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -83,7 +83,7 @@ export function ThemeToggle() {
       case "high-contrast":
         return <Contrast className="h-5 w-5 text-swift-blue-600" />;
       case "sepia":
-        return <ColorPicker className="h-5 w-5 text-swift-blue-600" />;
+        return <PaintBucket className="h-5 w-5 text-swift-blue-600" />;
       case "corporate":
         return <Palette className="h-5 w-5 text-swift-blue-600" />;
       case "monochrome":
@@ -170,7 +170,7 @@ export function ThemeToggle() {
           onClick={() => handleThemeChange("sepia")}
           className={`${theme === "sepia" ? "bg-swift-blue-50 text-swift-blue-600" : ""} hover:bg-swift-blue-50 hover:text-swift-blue-600 transition-colors`}
         >
-          <ColorPicker className="h-4 w-4 mr-2" />
+          <PaintBucket className="h-4 w-4 mr-2" />
           Sepia
         </DropdownMenuItem>
         
