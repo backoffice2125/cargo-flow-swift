@@ -21,6 +21,7 @@ import ManageAddresses from '@/pages/ManageAddresses';
 import NotificationsPage from '@/pages/NotificationsPage';
 import AddressSettingsPage from '@/pages/AddressSettings';
 import UserManagement from '@/pages/UserManagement';
+import Settings from '@/pages/Settings';
 import SplashScreen from '@/components/SplashScreen';
 
 function App() {
@@ -77,6 +78,11 @@ function App() {
                       <Route path="/notifications" element={
                         <ProtectedRoute>
                           <NotificationsPage />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/settings" element={
+                        <ProtectedRoute>
+                          <Settings />
                         </ProtectedRoute>
                       } />
                       <Route path="/404" element={<NotFound />} />
