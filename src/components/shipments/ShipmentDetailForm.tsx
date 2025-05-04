@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -622,6 +621,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               <Input
                 id="dispatch_number"
                 name="dispatch_number"
+                type="text"
                 value={formData.dispatch_number}
                 onChange={handleChange}
               />
@@ -666,4 +666,3 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
 };
 
 export default ShipmentDetailForm;
-
