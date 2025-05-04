@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -15,6 +15,18 @@ const ProtectedRouteWithRoles: React.FC<ProtectedRouteWithRolesProps> = ({
 }) => {
   const { user, profile, loading } = useAuth();
   const { toast } = useToast();
+  
+  // Check access on mount only
+  useEffect(() => {
+    if (!loading && user && allowedRoles.length > 0 && 
+        (!profile || !allowedRoles.includes(profile.role))) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+    }
+  }, [loading, user, profile, allowedRoles, toast]);
 
   // Still loading auth state
   if (loading) {
@@ -28,11 +40,6 @@ const ProtectedRouteWithRoles: React.FC<ProtectedRouteWithRolesProps> = ({
 
   // If roles are specified and the user doesn't have the required role
   if (allowedRoles.length > 0 && (!profile || !allowedRoles.includes(profile.role))) {
-    toast({
-      title: "Access Denied",
-      description: "You don't have permission to access this page.",
-      variant: "destructive",
-    });
     return <Navigate to="/" replace />;
   }
 
