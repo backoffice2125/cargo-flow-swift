@@ -10,6 +10,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/react-query';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ProtectedRouteWithRoles from '@/components/auth/ProtectedRouteWithRoles';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
@@ -54,9 +55,9 @@ function App() {
                         </ProtectedRoute>
                       } />
                       <Route path="/manage/dropdowns" element={
-                        <ProtectedRoute>
+                        <ProtectedRouteWithRoles allowedRoles={['admin']}>
                           <DropdownManagement />
-                        </ProtectedRoute>
+                        </ProtectedRouteWithRoles>
                       } />
                       <Route path="/manage/addresses" element={
                         <ProtectedRoute>
@@ -64,14 +65,14 @@ function App() {
                         </ProtectedRoute>
                       } />
                       <Route path="/manage/users" element={
-                        <ProtectedRoute>
+                        <ProtectedRouteWithRoles allowedRoles={['admin']}>
                           <UserManagement />
-                        </ProtectedRoute>
+                        </ProtectedRouteWithRoles>
                       } />
                       <Route path="/address-settings" element={
-                        <ProtectedRoute>
+                        <ProtectedRouteWithRoles allowedRoles={['admin']}>
                           <AddressSettingsPage />
-                        </ProtectedRoute>
+                        </ProtectedRouteWithRoles>
                       } />
                       <Route path="/notifications" element={
                         <ProtectedRoute>

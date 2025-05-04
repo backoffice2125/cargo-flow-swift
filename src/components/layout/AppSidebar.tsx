@@ -9,7 +9,8 @@ import {
   ChevronDown, 
   FilePlus, 
   Database,
-  Mail
+  Mail,
+  Users
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -22,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AppSidebar = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="w-64 h-full bg-white dark:bg-gray-800 border-r dark:border-gray-700">
@@ -86,35 +88,44 @@ const AppSidebar = () => {
               </span>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-gray-700 dark:text-gray-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <Settings className="h-5 w-5" />
-                    <span>Settings</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-52">
-                <DropdownMenuItem asChild>
-                  <NavLink to="/manage/dropdowns" className="w-full cursor-pointer">
-                    <Database className="mr-2 h-4 w-4" />
-                    <span>Dropdown Management</span>
-                  </NavLink>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem asChild>
-                  <NavLink to="/address-settings" className="w-full cursor-pointer">
-                    <Mail className="mr-2 h-4 w-4" />
-                    <span>Address Settings</span>
-                  </NavLink>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-md text-gray-700 dark:text-gray-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings className="h-5 w-5" />
+                      <span>Settings</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/manage/dropdowns" className="w-full cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" />
+                      <span>Dropdown Management</span>
+                    </NavLink>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/address-settings" className="w-full cursor-pointer">
+                      <Mail className="mr-2 h-4 w-4" />
+                      <span>Address Settings</span>
+                    </NavLink>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/manage/users" className="w-full cursor-pointer">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>User Management</span>
+                    </NavLink>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </nav>
       </div>

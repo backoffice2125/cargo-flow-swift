@@ -100,6 +100,9 @@ const AppSidebarMenu = () => {
 };
 
 const AppSidebarManagement = () => {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+
   return (
     <>
       <SidebarSeparator />
@@ -107,41 +110,45 @@ const AppSidebarManagement = () => {
         <SidebarGroupLabel>Management</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Dropdown Management">
-                <NavLink
-                  to="/manage/dropdowns"
-                  className={({ isActive }) => cn(isActive && "data-[active=true]")}
-                >
-                  <Database className="h-5 w-5" />
-                  <span>Dropdown Management</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="User Management">
-                <NavLink
-                  to="/manage/users"
-                  className={({ isActive }) => cn(isActive && "data-[active=true]")}
-                >
-                  <Users className="h-5 w-5" />
-                  <span>User Management</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Address Settings">
-                <NavLink
-                  to="/address-settings"
-                  className={({ isActive }) => cn(isActive && "data-[active=true]")}
-                >
-                  <Mail className="h-5 w-5" />
-                  <span>Address Settings</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {isAdmin && (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Dropdown Management">
+                    <NavLink
+                      to="/manage/dropdowns"
+                      className={({ isActive }) => cn(isActive && "data-[active=true]")}
+                    >
+                      <Database className="h-5 w-5" />
+                      <span>Dropdown Management</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="User Management">
+                    <NavLink
+                      to="/manage/users"
+                      className={({ isActive }) => cn(isActive && "data-[active=true]")}
+                    >
+                      <Users className="h-5 w-5" />
+                      <span>User Management</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Address Settings">
+                    <NavLink
+                      to="/address-settings"
+                      className={({ isActive }) => cn(isActive && "data-[active=true]")}
+                    >
+                      <Mail className="h-5 w-5" />
+                      <span>Address Settings</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
