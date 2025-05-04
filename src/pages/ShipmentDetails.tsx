@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
-import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Edit, FilePlus, Loader2, Pencil, ChevronRight, ChevronDown, Save, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShipmentDetailForm from "@/components/shipments/ShipmentDetailForm";
 import ShipmentDetailItem from "@/components/shipments/ShipmentDetailItem";
@@ -115,6 +116,7 @@ const ShipmentDetails = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [subcarriers, setSubcarriers] = useState<Carrier[]>([]);
+  const [showAllDetails, setShowAllDetails] = useState(false);
   
   const [totals, setTotals] = useState({
     grossWeight: 0,
@@ -127,6 +129,10 @@ const ShipmentDetails = () => {
   });
 
   const { generatePreAlertPDF, generateCMRPDF, loading: pdfLoading } = usePDF();
+
+  // Display maximum 5 detail items by default
+  const visibleDetails = showAllDetails ? details : details.slice(0, 5);
+  const hasMoreDetails = details.length > 5;
 
   useEffect(() => {
     const fetchShipmentData = async () => {
@@ -574,6 +580,10 @@ const ShipmentDetails = () => {
     }));
   };
 
+  const toggleShowAllDetails = () => {
+    setShowAllDetails(prev => !prev);
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -934,18 +944,50 @@ const ShipmentDetails = () => {
                 Manage items in this shipment
               </CardDescription>
             </div>
-            {shipment.status === 'pending' && (
-              <Button 
-                onClick={() => {
-                  setEditingDetailId(null);
-                  setShowDetailForm(true);
-                }} 
-                disabled={showDetailForm}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Detail
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {shipment.status === 'completed' && (
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={handleGeneratePreAlertPDF}
+                    disabled={pdfLoading}
+                  >
+                    {pdfLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FilePlus className="h-4 w-4 mr-2" />
+                    )}
+                    Generate Pre-Alert PDF
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={handleGenerateCMRPDF}
+                    disabled={pdfLoading}
+                  >
+                    {pdfLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FilePlus className="h-4 w-4 mr-2" />
+                    )}
+                    Generate CMR PDF
+                  </Button>
+                </div>
+              )}
+              {shipment.status === 'pending' && (
+                <Button 
+                  onClick={() => {
+                    setEditingDetailId(null);
+                    setShowDetailForm(true);
+                  }} 
+                  disabled={showDetailForm}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Detail
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {showDetailForm ? (
@@ -961,7 +1003,7 @@ const ShipmentDetails = () => {
               />
             ) : details.length > 0 ? (
               <div className="space-y-4">
-                {details.map((detail) => (
+                {visibleDetails.map((detail) => (
                   <div key={detail.id} className="border rounded-md bg-card overflow-hidden">
                     <div 
                       className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/30"
@@ -1019,46 +1061,23 @@ const ShipmentDetails = () => {
                   </div>
                 ))}
 
-                {shipment.status === 'completed' && (
-                  <div className="mt-6">
-                    <Card className="bg-muted/30">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Document Generation</CardTitle>
-                        <CardDescription>
-                          Generate documents for this completed shipment
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button 
-                            variant="outline" 
-                            className="h-24 flex flex-col items-center justify-center"
-                            onClick={handleGeneratePreAlertPDF}
-                            disabled={pdfLoading}
-                          >
-                            {pdfLoading ? (
-                              <Loader2 className="h-6 w-6 mb-2 animate-spin" />
-                            ) : (
-                              <FilePlus className="h-6 w-6 mb-2" />
-                            )}
-                            <span>Generate Pre-Alert PDF</span>
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="h-24 flex flex-col items-center justify-center"
-                            onClick={handleGenerateCMRPDF}
-                            disabled={pdfLoading}
-                          >
-                            {pdfLoading ? (
-                              <Loader2 className="h-6 w-6 mb-2 animate-spin" />
-                            ) : (
-                              <FilePlus className="h-6 w-6 mb-2" />
-                            )}
-                            <span>Generate CMR PDF</span>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {hasMoreDetails && (
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={toggleShowAllDetails}
+                      className="flex items-center gap-1"
+                    >
+                      {showAllDetails ? (
+                        <>
+                          <ChevronUp className="h-4 w-4" /> Show Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4" /> View All ({details.length} items)
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
