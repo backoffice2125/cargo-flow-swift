@@ -11,7 +11,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, uppercase = true, onChange, ...props }, ref) => {
     // Custom onChange handler to transform text to uppercase
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (uppercase && type !== "password" && type !== "email" && type !== "number" && type !== "date") {
+      // Check if we should apply uppercase transformation
+      // Only apply uppercase to text inputs when uppercase prop is true
+      // Exclude certain input types from uppercase transformation
+      if (uppercase && 
+          type === "text" && 
+          props.name !== "dispatch_number") {
         // Create a copy of the original event to preserve all properties
         const originalValue = event.target.value;
         
@@ -24,7 +29,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           }
         } as React.ChangeEvent<HTMLInputElement>);
       } else {
-        // For non-text inputs or when uppercase is disabled, use original onChange
+        // For non-text inputs, numeric fields, or when uppercase is disabled, use original onChange
         onChange && onChange(event);
       }
     };

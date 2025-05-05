@@ -622,6 +622,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 id="dispatch_number"
                 name="dispatch_number"
                 type="text"
+                uppercase={false}
                 value={formData.dispatch_number}
                 onChange={handleChange}
               />
