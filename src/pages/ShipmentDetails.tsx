@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,92 +133,92 @@ const ShipmentDetails = () => {
   const visibleDetails = showAllDetails ? details : details.slice(0, 5);
   const hasMoreDetails = details.length > 5;
 
-  useEffect(() => {
-    const fetchShipmentData = async () => {
-      if (!id) return;
+  const fetchShipmentData = async () => {
+    if (!id) return;
 
-      setIsLoading(true);
-      
-      try {
-        const { data: shipmentData, error: shipmentError } = await supabase
-          .from('shipments')
-          .select(`
-            *,
-            carrier:carrier_id(id, name),
-            subcarrier:subcarrier_id(id, name)
-          `)
-          .eq('id', id)
-          .single();
-        
-        if (shipmentError) throw shipmentError;
-        setShipment(shipmentData);
-        setEditedShipment({
-          driver_name: shipmentData.driver_name,
-          status: shipmentData.status,
-          carrier_id: shipmentData.carrier_id,
-          subcarrier_id: shipmentData.subcarrier_id,
-          departure_date: shipmentData.departure_date,
-          arrival_date: shipmentData.arrival_date,
-          seal_no: shipmentData.seal_no,
-          truck_reg_no: shipmentData.truck_reg_no,
-          trailer_reg_no: shipmentData.trailer_reg_no,
-        });
-        
-        const { data: carriersData, error: carriersError } = await supabase
-          .from('carriers')
-          .select('*')
-          .order('name', { ascending: true });
-          
-        if (carriersError) throw carriersError;
-        setCarriers(carriersData || []);
-        
-        const { data: subcarriersData, error: subcarriersError } = await supabase
-          .from('subcarriers')
-          .select('*')
-          .order('name', { ascending: true });
-          
-        if (subcarriersError) throw subcarriersError;
-        setSubcarriers(subcarriersData || []);
-        
-        const { data: detailsData, error: detailsError } = await supabase
-          .from('shipment_details')
-          .select(`
-            *,
-            customer:customer_id(name, is_asendia),
-            service:service_id(name),
-            format:format_id(name),
-            prior_format:prior_format_id(name),
-            eco_format:eco_format_id(name),
-            s3c_format:s3c_format_id(name),
-            doe:doe_id(name)
-          `)
-          .eq('shipment_id', id)
-          .order('created_at', { ascending: true });
-          
-        if (detailsError) throw detailsError;
-        setDetails(detailsData || []);
-        
-        const initialExpanded: { [key: string]: boolean } = {};
-        detailsData?.forEach(detail => {
-          initialExpanded[detail.id] = true;
-        });
-        setExpandedDetails(initialExpanded);
-        
-        calculateTotals(detailsData || []);
-      } catch (error) {
-        console.error('Error fetching shipment data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load shipment data",
-          variant: "destructive",
-        });
-        
-        navigate('/');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsLoading(true);
     
+    try {
+      const { data: shipmentData, error: shipmentError } = await supabase
+        .from('shipments')
+        .select(`
+          *,
+          carrier:carrier_id(id, name),
+          subcarrier:subcarrier_id(id, name)
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (shipmentError) throw shipmentError;
+      setShipment(shipmentData);
+      setEditedShipment({
+        driver_name: shipmentData.driver_name,
+        status: shipmentData.status,
+        carrier_id: shipmentData.carrier_id,
+        subcarrier_id: shipmentData.subcarrier_id,
+        departure_date: shipmentData.departure_date,
+        arrival_date: shipmentData.arrival_date,
+        seal_no: shipmentData.seal_no,
+        truck_reg_no: shipmentData.truck_reg_no,
+        trailer_reg_no: shipmentData.trailer_reg_no,
+      });
+      
+      const { data: carriersData, error: carriersError } = await supabase
+        .from('carriers')
+        .select('*')
+        .order('name', { ascending: true });
+        
+      if (carriersError) throw carriersError;
+      setCarriers(carriersData || []);
+      
+      const { data: subcarriersData, error: subcarriersError } = await supabase
+        .from('subcarriers')
+        .select('*')
+        .order('name', { ascending: true });
+        
+      if (subcarriersError) throw subcarriersError;
+      setSubcarriers(subcarriersData || []);
+      
+      const { data: detailsData, error: detailsError } = await supabase
+        .from('shipment_details')
+        .select(`
+          *,
+          customer:customer_id(name, is_asendia),
+          service:service_id(name),
+          format:format_id(name),
+          prior_format:prior_format_id(name),
+          eco_format:eco_format_id(name),
+          s3c_format:s3c_format_id(name),
+          doe:doe_id(name)
+        `)
+        .eq('shipment_id', id)
+        .order('created_at', { ascending: true });
+        
+      if (detailsError) throw detailsError;
+      setDetails(detailsData || []);
+      
+      const initialExpanded: { [key: string]: boolean } = {};
+      detailsData?.forEach(detail => {
+        initialExpanded[detail.id] = true;
+      });
+      setExpandedDetails(initialExpanded);
+      
+      calculateTotals(detailsData || []);
+    } catch (error) {
+      console.error('Error fetching shipment data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load shipment data",
+        variant: "destructive",
+      });
+      
+      navigate('/');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchShipmentData();
 
     const channel = supabase
@@ -272,6 +271,9 @@ const ShipmentDetails = () => {
   };
 
   const handleSaveDetail = () => {
+    // This function is called after a detail is saved
+    // Now it will directly fetch the updated data without requiring a manual refresh
+    fetchShipmentData();
     setShowDetailForm(false);
     setEditingDetailId(null);
   };
@@ -941,213 +943,3 @@ const ShipmentDetails = () => {
             <div>
               <CardTitle>Shipment Details</CardTitle>
               <CardDescription>
-                Manage items in this shipment
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {shipment.status === 'completed' && (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center"
-                    onClick={handleGeneratePreAlertPDF}
-                    disabled={pdfLoading}
-                  >
-                    {pdfLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FilePlus className="h-4 w-4 mr-2" />
-                    )}
-                    Generate Pre-Alert PDF
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center"
-                    onClick={handleGenerateCMRPDF}
-                    disabled={pdfLoading}
-                  >
-                    {pdfLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FilePlus className="h-4 w-4 mr-2" />
-                    )}
-                    Generate CMR PDF
-                  </Button>
-                </div>
-              )}
-              {shipment.status === 'pending' && (
-                <Button 
-                  onClick={() => {
-                    setEditingDetailId(null);
-                    setShowDetailForm(true);
-                  }} 
-                  disabled={showDetailForm}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Detail
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {showDetailForm ? (
-              <ShipmentDetailForm 
-                shipmentId={id!}
-                onCancel={() => {
-                  setShowDetailForm(false);
-                  setEditingDetailId(null);
-                }} 
-                onSave={handleSaveDetail}
-                isEditMode={!!editingDetailId}
-                detailId={editingDetailId}
-              />
-            ) : details.length > 0 ? (
-              <div className="space-y-4">
-                {visibleDetails.map((detail) => (
-                  <div key={detail.id} className="border rounded-md bg-card overflow-hidden">
-                    <div 
-                      className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/30"
-                      onClick={() => toggleDetailExpand(detail.id)}
-                    >
-                      <div className="flex items-center">
-                        {expandedDetails[detail.id] ? 
-                          <ChevronDown className="h-4 w-4 mr-2" /> : 
-                          <ChevronRight className="h-4 w-4 mr-2" />
-                        }
-                        <h3 className="font-medium">
-                          {detail.customer?.name || "Customer"} - {detail.service?.name || "Service"}
-                        </h3>
-                      </div>
-                      {shipment.status === 'pending' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditDetail(detail.id);
-                            }}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteDetail(detail.id);
-                              }}
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                    
-                    {expandedDetails[detail.id] && (
-                      <div className="p-4 pt-0 border-t">
-                        <ShipmentDetailItem 
-                          detail={detail} 
-                          onEdit={shipment.status === 'pending' ? handleEditDetail : undefined}
-                          onDelete={shipment.status === 'pending' ? handleDeleteDetail : undefined}
-                          showActions={false}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {hasMoreDetails && (
-                  <div className="flex justify-center mt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={toggleShowAllDetails}
-                      className="flex items-center gap-1"
-                    >
-                      {showAllDetails ? (
-                        <>
-                          <ChevronUp className="h-4 w-4" /> Show Less
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-4 w-4" /> View All ({details.length} items)
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground">No details added to this shipment yet</p>
-                {shipment.status === 'pending' && (
-                  <Button onClick={() => setShowDetailForm(true)} className="mt-4">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add First Detail
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shipment Detail</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this shipment detail? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteDetail} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={completeAlertOpen} onOpenChange={setCompleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Complete Shipment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark this shipment as completed? This will lock the shipment for further editing.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCompleteShipment}>
-              Complete Shipment
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteShipmentAlertOpen} onOpenChange={setDeleteShipmentAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shipment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this shipment? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteShipment} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </AppLayout>
-  );
-};
-
-export default ShipmentDetails;
