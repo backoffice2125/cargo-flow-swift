@@ -129,6 +129,13 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (servicesError) throw servicesError;
         setServices(servicesData || []);
         
+        // Find "Prio" service and set it as default
+        const prioService = servicesData?.find(s => s.name === "Prio");
+        if (prioService && !isEditMode) {
+          setFormData(prev => ({ ...prev, service_id: prioService.id }));
+          setSelectedService("Prio");
+        }
+        
         const { data: formatsData, error: formatsError } = await supabase
           .from('formats')
           .select('id, name, service_id')
@@ -182,7 +189,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
     };
     
     fetchDropdownData();
-  }, [toast]);
+  }, [toast, isEditMode]);
   
   useEffect(() => {
     const fetchDetailData = async () => {
@@ -405,6 +412,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         });
       }
       
+      // Call onSave to update the parent component and show the new entry
       onSave();
     } catch (error: any) {
       console.error('Error saving shipment detail:', error);
