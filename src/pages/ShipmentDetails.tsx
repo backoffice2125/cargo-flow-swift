@@ -271,8 +271,7 @@ const ShipmentDetails = () => {
   };
 
   const handleSaveDetail = () => {
-    // This function is called after a detail is saved
-    // Now it will directly fetch the updated data without requiring a manual refresh
+    // After saving a detail, immediately fetch updated data
     fetchShipmentData();
     setShowDetailForm(false);
     setEditingDetailId(null);
@@ -304,8 +303,8 @@ const ShipmentDetails = () => {
         description: "Shipment detail has been removed",
       });
       
-      setDetails(prev => prev.filter(detail => detail.id !== deleteDetailId));
-      calculateTotals(details.filter(detail => detail.id !== deleteDetailId));
+      // Immediately update the list after deletion
+      fetchShipmentData();
     } catch (error) {
       console.error('Error deleting detail:', error);
       toast({
@@ -943,3 +942,155 @@ const ShipmentDetails = () => {
             <div>
               <CardTitle>Shipment Details</CardTitle>
               <CardDescription>
+                Manage the items in this shipment
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <FilePlus className="h-4 w-4 mr-2" />
+                    Documents
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleGeneratePreAlertPDF} disabled={pdfLoading}>
+                    Generate Pre-Alert PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleGenerateCMRPDF} disabled={pdfLoading}>
+                    Generate CMR PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {!showDetailForm && shipment.status === 'pending' && (
+                <Button onClick={() => setShowDetailForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Detail
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {showDetailForm ? (
+              <ShipmentDetailForm 
+                shipmentId={id || ""} 
+                onCancel={() => {
+                  setShowDetailForm(false);
+                  setEditingDetailId(null);
+                }}
+                onSave={handleSaveDetail}
+                isEditMode={!!editingDetailId}
+                detailId={editingDetailId}
+              />
+            ) : (
+              details.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No details added to this shipment yet.</p>
+                  {shipment.status === 'pending' && (
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => setShowDetailForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Detail
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {visibleDetails.map(detail => (
+                    <ShipmentDetailItem
+                      key={detail.id}
+                      detail={detail}
+                      onEdit={() => handleEditDetail(detail.id)}
+                      onDelete={() => handleDeleteDetail(detail.id)}
+                      isExpanded={expandedDetails[detail.id]}
+                      onToggleExpand={() => toggleDetailExpand(detail.id)}
+                      shipmentStatus={shipment.status}
+                    />
+                  ))}
+                  
+                  {hasMoreDetails && (
+                    <div className="flex justify-center pt-4">
+                      <Button 
+                        variant="ghost"
+                        onClick={toggleShowAllDetails}
+                      >
+                        {showAllDetails ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-2" />
+                            Show fewer details
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-2" />
+                            Show all {details.length} details
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete shipment detail?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this shipment detail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDetail} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={completeAlertOpen} onOpenChange={setCompleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete shipment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will mark the shipment as completed. You can still edit its details after completion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCompleteShipment}>
+              Complete Shipment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteShipmentAlertOpen} onOpenChange={setDeleteShipmentAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this shipment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteShipment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppLayout>
+  );
+};
+
+export default ShipmentDetails;
