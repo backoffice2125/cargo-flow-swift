@@ -129,11 +129,11 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (servicesError) throw servicesError;
         setServices(servicesData || []);
         
-        // Find "Prio" service and set it as default immediately
-        const prioService = servicesData?.find(s => s.name === "Prio");
-        if (prioService && !isEditMode) {
-          setFormData(prev => ({ ...prev, service_id: prioService.id }));
-          setSelectedService("Prio");
+        // Find "Prior" service and set it as default immediately
+        const priorService = servicesData?.find(s => s.name === "Prior");
+        if (priorService && !isEditMode) {
+          setFormData(prev => ({ ...prev, service_id: priorService.id }));
+          setSelectedService("Prior");
         }
         
         const { data: formatsData, error: formatsError } = await supabase
