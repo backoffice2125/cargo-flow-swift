@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ShipmentDetailItemProps {
   detail: {
@@ -38,87 +38,111 @@ interface ShipmentDetailItemProps {
   onEdit?: (detailId: string) => void;
   onDelete?: (detailId: string) => void;
   showActions?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  shipmentStatus?: string;
 }
 
 const ShipmentDetailItem: React.FC<ShipmentDetailItemProps> = ({ 
   detail, 
   onEdit, 
   onDelete, 
-  showActions = false 
+  showActions = false,
+  isExpanded = true,
+  onToggleExpand,
+  shipmentStatus
 }) => {
   return (
-    <div className="space-y-4">
-      {showActions && onEdit && onDelete && (
-        <div className="flex justify-end space-x-2 mb-2">
+    <div className="bg-background border rounded-md p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(detail.id);
-            }}
+            className="p-0 h-8 w-8" 
+            onClick={onToggleExpand}
           >
-            <Edit className="h-4 w-4 mr-2" /> Edit
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-destructive hover:bg-destructive/10" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(detail.id);
-            }}
-          >
-            <Trash className="h-4 w-4 mr-2" /> Delete
-          </Button>
+          <span className="ml-2 font-medium">
+            {detail.customer?.name || 'Unknown Customer'} {detail.service?.name ? `- ${detail.service.name}` : ''}
+          </span>
         </div>
-      )}
-      
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-        <div>
-          <p className="text-xs text-muted-foreground">Pallets</p>
-          <p>{detail.number_of_pallets}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Bags</p>
-          <p>{detail.number_of_bags}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Format</p>
-          <p>
-            {
-              detail.service?.name === 'Prior' ? detail.prior_format?.name :
-              detail.service?.name === 'Eco' ? detail.eco_format?.name :
-              detail.service?.name === 'S3C' ? detail.s3c_format?.name :
-              detail.format?.name || '-'
-            }
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Gross Weight</p>
-          <p>{detail.gross_weight} kg</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Tare Weight</p>
-          <p>{detail.tare_weight} kg</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Net Weight</p>
-          <p>{detail.net_weight.toFixed(2)} kg</p>
-        </div>
-        {detail.dispatch_number && (
-          <div>
-            <p className="text-xs text-muted-foreground">Dispatch Number</p>
-            <p>{detail.dispatch_number}</p>
-          </div>
-        )}
-        {detail.doe && (
-          <div>
-            <p className="text-xs text-muted-foreground">DOE</p>
-            <p>{detail.doe.name}</p>
+        
+        {(showActions || (shipmentStatus === 'pending' && onEdit && onDelete)) && (
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onEdit) onEdit(detail.id);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-destructive hover:bg-destructive/10" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onDelete) onDelete(detail.id);
+              }}
+            >
+              <Trash className="h-4 w-4 mr-2" /> Delete
+            </Button>
           </div>
         )}
       </div>
+      
+      {isExpanded && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Pallets</p>
+            <p>{detail.number_of_pallets}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Bags</p>
+            <p>{detail.number_of_bags}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Format</p>
+            <p>
+              {
+                detail.service?.name === 'Prior' ? detail.prior_format?.name :
+                detail.service?.name === 'Eco' ? detail.eco_format?.name :
+                detail.service?.name === 'S3C' ? detail.s3c_format?.name :
+                detail.format?.name || '-'
+              }
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Gross Weight</p>
+            <p>{detail.gross_weight} kg</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Tare Weight</p>
+            <p>{detail.tare_weight} kg</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Net Weight</p>
+            <p>{detail.net_weight.toFixed(2)} kg</p>
+          </div>
+          {detail.dispatch_number && (
+            <div>
+              <p className="text-xs text-muted-foreground">Dispatch Number</p>
+              <p>{detail.dispatch_number}</p>
+            </div>
+          )}
+          {detail.doe && (
+            <div>
+              <p className="text-xs text-muted-foreground">DOE</p>
+              <p>{detail.doe.name}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
