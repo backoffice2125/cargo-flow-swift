@@ -320,7 +320,15 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const requiredFields = ["customer_id", "service_id", "gross_weight"];
+    // Updated to check ALL fields are filled
+    const requiredFields = [
+      "customer_id", 
+      "service_id", 
+      "gross_weight", 
+      "dispatch_number", 
+      "doe_id"
+    ];
+    
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
     if (missingFields.length > 0) {
@@ -332,6 +340,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       return;
     }
     
+    // Service-specific format validation
     if (selectedService === 'Prior' && !formData.prior_format_id) {
       toast({
         title: "Missing required field",
@@ -378,7 +387,8 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         prior_format_id: formData.prior_format_id || null,
         eco_format_id: formData.eco_format_id || null,
         s3c_format_id: formData.s3c_format_id || null,
-        doe_id: formData.doe_id || null
+        doe_id: formData.doe_id || null,
+        dispatch_number: formData.dispatch_number || null
       };
       
       if (isEditMode && detailId) {
@@ -446,6 +456,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               <Select 
                 onValueChange={(value) => handleSelectChange("customer_id", value)}
                 value={formData.customer_id}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select customer" />
@@ -465,6 +476,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               <Select 
                 onValueChange={(value) => handleSelectChange("service_id", value)}
                 value={formData.service_id}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select service" />
@@ -485,6 +497,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 <Select 
                   onValueChange={(value) => handleSelectChange("format_id", value)}
                   value={formData.format_id}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select format" />
@@ -506,6 +519,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 <Select 
                   onValueChange={(value) => handleSelectChange("prior_format_id", value)}
                   value={formData.prior_format_id}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select prior format" />
@@ -527,6 +541,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 <Select 
                   onValueChange={(value) => handleSelectChange("eco_format_id", value)}
                   value={formData.eco_format_id}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select eco format" />
@@ -548,6 +563,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 <Select 
                   onValueChange={(value) => handleSelectChange("s3c_format_id", value)}
                   value={formData.s3c_format_id}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select S3C format" />
@@ -565,7 +581,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
             
             {!showBagsField && (
               <div className="space-y-2">
-                <Label htmlFor="number_of_pallets">Number of Pallets</Label>
+                <Label htmlFor="number_of_pallets">Number of Pallets*</Label>
                 <Input
                   id="number_of_pallets"
                   name="number_of_pallets"
@@ -573,13 +589,14 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                   min="0"
                   value={formData.number_of_pallets}
                   onChange={handleChange}
+                  required
                 />
               </div>
             )}
             
             {showBagsField && (
               <div className="space-y-2">
-                <Label htmlFor="number_of_bags">Number of Bags</Label>
+                <Label htmlFor="number_of_bags">Number of Bags*</Label>
                 <Input
                   id="number_of_bags"
                   name="number_of_bags"
@@ -587,6 +604,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                   min="0"
                   value={formData.number_of_bags}
                   onChange={handleChange}
+                  required
                 />
               </div>
             )}
@@ -601,11 +619,12 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 min="0"
                 value={formData.gross_weight}
                 onChange={handleChange}
+                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="tare_weight">Tare Weight (kg)</Label>
+              <Label htmlFor="tare_weight">Tare Weight (kg)*</Label>
               <Input
                 id="tare_weight"
                 name="tare_weight"
@@ -616,6 +635,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 onChange={showBagsField ? undefined : handleChange}
                 readOnly={showBagsField}
                 className={showBagsField ? "bg-muted cursor-not-allowed" : ""}
+                required
               />
               <p className="text-xs text-muted-foreground">
                 {showBagsField 
@@ -625,7 +645,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="dispatch_number">Dispatch Number</Label>
+              <Label htmlFor="dispatch_number">Dispatch Number*</Label>
               <Input
                 id="dispatch_number"
                 name="dispatch_number"
@@ -633,14 +653,16 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 uppercase={false}
                 value={formData.dispatch_number}
                 onChange={handleChange}
+                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="doe_id">DOE</Label>
+              <Label htmlFor="doe_id">DOE*</Label>
               <Select 
                 onValueChange={(value) => handleSelectChange("doe_id", value)}
                 value={formData.doe_id}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select DOE" />
