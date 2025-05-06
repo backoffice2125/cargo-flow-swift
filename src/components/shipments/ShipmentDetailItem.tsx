@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Edit, Trash, ChevronDown, ChevronUp } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ShipmentDetailItemProps {
   detail: {
@@ -41,6 +42,8 @@ interface ShipmentDetailItemProps {
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   shipmentStatus?: string;
+  isSelected?: boolean;
+  onSelectChange?: (detailId: string, isSelected: boolean) => void;
 }
 
 const ShipmentDetailItem: React.FC<ShipmentDetailItemProps> = ({ 
@@ -50,12 +53,24 @@ const ShipmentDetailItem: React.FC<ShipmentDetailItemProps> = ({
   showActions = false,
   isExpanded = true,
   onToggleExpand,
-  shipmentStatus
+  shipmentStatus,
+  isSelected = false,
+  onSelectChange
 }) => {
   return (
     <div className="bg-background border rounded-md p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
+          {onSelectChange && shipmentStatus === 'pending' && (
+            <Checkbox
+              className="mr-2" 
+              checked={isSelected} 
+              onCheckedChange={(checked) => {
+                onSelectChange(detail.id, checked === true);
+              }}
+              aria-label="Select shipment detail"
+            />
+          )}
           <Button 
             variant="ghost" 
             size="sm" 

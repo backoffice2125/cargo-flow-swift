@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Shipment {
   id: string;
@@ -585,6 +586,72 @@ const ShipmentDetails = () => {
     setShowAllDetails(prev => !prev);
   };
 
+  const handleSelectDetail = (detailId: string, isSelected: boolean) => {
+    setSelectedDetails(prev => {
+      const updated = new Set(prev);
+      if (isSelected) {
+        updated.add(detailId);
+      } else {
+        updated.delete(detailId);
+      }
+      return updated;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set<string>();
+      visibleDetails.forEach(detail => {
+        allIds.add(detail.id);
+      });
+      setSelectedDetails(allIds);
+    } else {
+      setSelectedDetails(new Set());
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedDetails.size === 0) return;
+    setBatchDeleteAlertOpen(true);
+  };
+
+  const confirmBatchDelete = async () => {
+    if (selectedDetails.size === 0) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Delete each selected detail
+      const promises = Array.from(selectedDetails).map(detailId => {
+        return supabase
+          .from('shipment_details')
+          .delete()
+          .eq('id', detailId);
+      });
+      
+      await Promise.all(promises);
+      
+      toast({
+        title: "Details deleted",
+        description: `${selectedDetails.size} shipment details have been removed`,
+      });
+      
+      // Clear selection and refresh data
+      setSelectedDetails(new Set());
+      fetchShipmentData();
+    } catch (error) {
+      console.error('Error deleting details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the selected shipment details",
+        variant: "destructive",
+      });
+    } finally {
+      setBatchDeleteAlertOpen(false);
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -1000,6 +1067,36 @@ const ShipmentDetails = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Batch selection controls */}
+                  {shipment.status === 'pending' && visibleDetails.length > 0 && (
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length}
+                          onCheckedChange={handleSelectAll}
+                        />
+                        <label htmlFor="select-all" className="text-sm cursor-pointer">
+                          {selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length 
+                            ? "Deselect All" 
+                            : "Select All"}
+                        </label>
+                      </div>
+                      
+                      {selectedDetails.size > 0 && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={handleBatchDelete}
+                          disabled={selectedDetails.size === 0}
+                        >
+                          <Trash className="h-4 w-4 mr-2" /> 
+                          Delete Selected ({selectedDetails.size})
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  
                   {visibleDetails.map(detail => (
                     <ShipmentDetailItem
                       key={detail.id}
@@ -1009,6 +1106,8 @@ const ShipmentDetails = () => {
                       isExpanded={expandedDetails[detail.id]}
                       onToggleExpand={() => toggleDetailExpand(detail.id)}
                       shipmentStatus={shipment.status}
+                      isSelected={selectedDetails.has(detail.id)}
+                      onSelectChange={shipment.status === 'pending' ? handleSelectDetail : undefined}
                     />
                   ))}
                   
@@ -1084,6 +1183,24 @@ const ShipmentDetails = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteShipment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add new AlertDialog for batch deletion */}
+      <AlertDialog open={batchDeleteAlertOpen} onOpenChange={setBatchDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected shipment details?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {selectedDetails.size} selected shipment details.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBatchDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
