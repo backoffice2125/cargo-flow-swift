@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -102,12 +101,17 @@ const FormLabel = React.forwardRef<
 })
 FormLabel.displayName = "FormLabel"
 
+// Fix: Update FormControl to handle the required attribute properly
 const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot> & { required?: boolean }
 >(({ required, ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
-
+  
+  // Create a new props object without the required property
+  // but keep track of required for aria attributes
+  const isRequired = !!required
+  
   return (
     <Slot
       ref={ref}
@@ -118,8 +122,7 @@ const FormControl = React.forwardRef<
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      aria-required={required}
-      required={required}
+      aria-required={isRequired}
       {...props}
     />
   )
