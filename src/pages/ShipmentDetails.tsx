@@ -118,6 +118,10 @@ const ShipmentDetails = () => {
   const [subcarriers, setSubcarriers] = useState<Carrier[]>([]);
   const [showAllDetails, setShowAllDetails] = useState(false);
   
+  // Add missing state variables for batch deletion
+  const [selectedDetails, setSelectedDetails] = useState<Set<string>>(new Set());
+  const [batchDeleteAlertOpen, setBatchDeleteAlertOpen] = useState(false);
+  
   const [totals, setTotals] = useState({
     grossWeight: 0,
     tareWeight: 0,
