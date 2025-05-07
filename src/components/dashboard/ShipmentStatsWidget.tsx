@@ -185,7 +185,7 @@ const ShipmentStatsWidget = () => {
               
               <div className="grid grid-cols-2 gap-4">
                 <StatItem 
-                  title="Asendia Net Weight" 
+                  title="Asendia A/C Net Weight" 
                   value={`${stats.totalAsendiaNetWeight.toFixed(2)} kg`}
                   icon={<ArrowRight className="h-4 w-4" />}
                 />

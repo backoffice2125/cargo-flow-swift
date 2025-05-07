@@ -184,7 +184,7 @@ const ShipmentStatsDrawer = ({ shipment, open, onClose }: ShipmentStatsDrawerPro
                 icon={<Scale className="h-4 w-4" />}
               />
               <StatItem 
-                title="Asendia Net Weight" 
+                title="Asendia A/C Net Weight" 
                 value={`${stats.totalAsendiaNetWeight.toFixed(2)} kg`}
                 icon={<Scale className="h-4 w-4" />}
               />

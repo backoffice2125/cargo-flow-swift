@@ -1001,7 +1001,7 @@ const ShipmentDetails = () => {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Asendia Net</p>
+                <p className="text-sm text-muted-foreground">Asendia A/C Net</p>
                 <p className="text-2xl font-bold mt-1">{totals.asendiaNetWeight.toFixed(2)} kg</p>
               </div>
             </CardContent>
