@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -332,6 +331,9 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
     tareWeight = totalBags * 0.125;
   }
   
+  // Format today's date for the signature fields
+  const currentDate = format(new Date(), 'dd/MM/yy');
+  
   // Set up the document
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8); // Standardize content text to 8pt normal font
@@ -468,11 +470,11 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('SIGNATURE OF CARRIER', 75, 245);
   doc.text('FOR GOODS, SIGNATURE', 138, 245);
   
-  // Signature date fields
+  // Signature date fields - now with today's date for the first two fields
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text('Date:', 12, 270);
-  doc.text('Date:', 75, 270);
+  doc.text(`Date: ${currentDate}`, 12, 270);
+  doc.text(`Date: ${currentDate}`, 75, 270);
   doc.text('Date: __/__/__', 138, 270);
   
   // Save the PDF
