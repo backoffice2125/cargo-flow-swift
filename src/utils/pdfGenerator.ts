@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,7 +77,7 @@ const generateFileName = (type: 'CMR' | 'Pre-Alert', shipment: Shipment): string
 const addLogoToPdf = (doc: jsPDF, logoImgData?: string) => {
   if (logoImgData) {
     try {
-      console.log("Adding logo to PDF...");
+      console.log("pdfGenerator: Adding logo to PDF. Logo data starts with:", logoImgData.substring(0, 50));
       
       // Add logo at the top center of the page
       // Size the logo appropriately (50mm width)
@@ -86,15 +85,25 @@ const addLogoToPdf = (doc: jsPDF, logoImgData?: string) => {
       const pageWidth = doc.internal.pageSize.getWidth();
       const xPosition = (pageWidth / 2) - (logoWidth / 2);
       
+      // Check if logo data is valid
+      if (!logoImgData || logoImgData.trim() === '') {
+        console.error('Invalid logo data provided');
+        return;
+      }
+      
+      // Extract format from data URL
+      const format = logoImgData.split(';')[0].split('/')[1];
+      console.log("pdfGenerator: Detected image format:", format);
+      
       // Using addImage with explicit format specification
-      doc.addImage(logoImgData, 'PNG', xPosition, 5, logoWidth, 15);
-      console.log("Logo added successfully at position:", xPosition, 5);
+      doc.addImage(logoImgData, format, xPosition, 5, logoWidth, 15);
+      console.log("pdfGenerator: Logo added successfully at position:", xPosition, 5);
     } catch (error) {
       console.error('Error adding logo to PDF:', error);
       // Continue without logo if there's an error
     }
   } else {
-    console.log("No logo data provided to add to PDF");
+    console.log("pdfGenerator: No logo data provided to add to PDF");
   }
 };
 
@@ -214,10 +223,16 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
   const doc = new jsPDF();
   const summary = calculateShipmentSummary(details);
   
-  console.log("Generating Pre-Alert PDF with logo:", options?.logoImgData ? "Custom logo provided" : "Using default logo");
+  console.log("pdfGenerator: Generating Pre-Alert PDF with logo:", 
+    options?.logoImgData ? "Logo provided (starts with: " + options.logoImgData.substring(0, 30) + "...)" : "No logo");
   
   // Add logo at the top if provided
-  addLogoToPdf(doc, options?.logoImgData);
+  if (options?.logoImgData) {
+    addLogoToPdf(doc, options.logoImgData);
+    console.log("pdfGenerator: Logo processing completed for Pre-Alert PDF");
+  } else {
+    console.log("pdfGenerator: No logo provided for Pre-Alert PDF");
+  }
   
   // Adjust starting Y position based on whether logo is added
   const startY = options?.logoImgData ? 25 : 20;
@@ -333,6 +348,7 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
   
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
+  console.log("pdfGenerator: Pre-Alert PDF generated successfully");
   return pdfOutput;
 };
 
@@ -346,7 +362,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   const doc = new jsPDF();
   const summary = calculateShipmentSummary(details);
   
-  console.log("Generating CMR PDF with logo:", options?.logoImgData ? "Custom logo provided" : "Using default logo");
+  console.log("pdfGenerator: Generating CMR PDF with logo:", 
+    options?.logoImgData ? "Logo provided (starts with: " + options.logoImgData.substring(0, 30) + "...)" : "No logo");
   
   // Get CMR customization options with defaults
   const cmrOptions = options?.cmrOptions || {};
@@ -371,7 +388,12 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   const currentDate = format(new Date(), 'dd/MM/yy');
   
   // Add logo at the top if provided
-  addLogoToPdf(doc, options?.logoImgData);
+  if (options?.logoImgData) {
+    addLogoToPdf(doc, options.logoImgData);
+    console.log("pdfGenerator: Logo processing completed for CMR PDF");
+  } else {
+    console.log("pdfGenerator: No logo provided for CMR PDF");
+  }
   
   // Adjust starting Y position based on whether logo is added
   const startY = options?.logoImgData ? 25 : 15;
@@ -522,17 +544,20 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
+  console.log("pdfGenerator: CMR PDF generated successfully");
   return pdfOutput;
 };
 
 // Download PDF - now supports both web browsers and mobile devices
 export const downloadPDF = async (dataUri: string, fileName: string, isNativeMobile: boolean = false) => {
+  console.log(`pdfGenerator: Downloading PDF "${fileName}" (isNativeMobile: ${isNativeMobile})`);
   try {
     if (isNativeMobile) {
       // On mobile, save to device storage
       const response = await fetch(dataUri);
       const blob = await response.blob();
       await saveFile(blob, fileName);
+      console.log("pdfGenerator: PDF saved to mobile device");
     } else {
       // On web, use standard browser download
       const link = document.createElement('a');
@@ -541,6 +566,7 @@ export const downloadPDF = async (dataUri: string, fileName: string, isNativeMob
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      console.log("pdfGenerator: PDF downloaded in browser");
     }
   } catch (error) {
     console.error('Error downloading PDF:', error);
