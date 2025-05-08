@@ -1,17 +1,112 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings as SettingsIcon, User, Bell, Shield } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon, User, Bell, Shield, Save } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: profile?.first_name || '',
+    lastName: profile?.last_name || '',
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id === 'firstName' ? 'firstName' : 'lastName']: value
+    }));
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to update your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Refresh the profile data
+      await refreshProfile();
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const currentPassword = (form.elements.namedItem('currentPassword') as HTMLInputElement).value;
+    const newPassword = (form.elements.namedItem('newPassword') as HTMLInputElement).value;
+    const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value;
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "New password and confirmation do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Supabase only allows password change through email reset
+      // For now, we'll just show a success message
+      toast({
+        title: "Feature coming soon",
+        description: "Password update functionality will be available soon",
+      });
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      form.reset();
+    }
+  };
 
   return (
     <AppLayout>
@@ -67,32 +162,32 @@ const Settings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
-                        <input 
+                        <Input
                           id="firstName"
                           type="text"
-                          className="w-full p-2 border rounded-md"
                           placeholder="First Name"
-                          defaultValue={profile?.first_name || ''}
+                          value={formData.firstName}
+                          onChange={handleInputChange}
                         />
                       </div>
                       <div className="space-y-2">
                         <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
-                        <input 
+                        <Input
                           id="lastName"
                           type="text"
-                          className="w-full p-2 border rounded-md"
                           placeholder="Last Name"
-                          defaultValue={profile?.last_name || ''}
+                          value={formData.lastName}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
                       <label htmlFor="email" className="text-sm font-medium">Email</label>
-                      <input 
+                      <Input
                         id="email"
                         type="email"
-                        className="w-full p-2 border rounded-md bg-muted"
+                        className="bg-muted"
                         placeholder="Email"
                         defaultValue={user?.email || ''}
                         disabled
@@ -102,7 +197,17 @@ const Settings = () => {
                   </div>
                   
                   <div className="flex justify-end">
-                    <Button>Save Changes</Button>
+                    <Button 
+                      onClick={handleUpdateProfile} 
+                      disabled={loading}
+                    >
+                      {loading ? 'Saving...' : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -155,41 +260,46 @@ const Settings = () => {
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Password</h3>
-                    <div className="grid gap-4">
+                    <form className="grid gap-4" onSubmit={handlePasswordUpdate}>
                       <div className="space-y-2">
                         <label htmlFor="currentPassword" className="text-sm font-medium">Current Password</label>
-                        <input 
+                        <Input 
                           id="currentPassword"
+                          name="currentPassword"
                           type="password"
-                          className="w-full p-2 border rounded-md"
                           placeholder="••••••••"
+                          required
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <label htmlFor="newPassword" className="text-sm font-medium">New Password</label>
-                        <input 
+                        <Input 
                           id="newPassword"
+                          name="newPassword"
                           type="password"
-                          className="w-full p-2 border rounded-md"
                           placeholder="••••••••"
+                          required
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</label>
-                        <input 
+                        <Input 
                           id="confirmPassword"
+                          name="confirmPassword"
                           type="password"
-                          className="w-full p-2 border rounded-md"
                           placeholder="••••••••"
+                          required
                         />
                       </div>
                       
                       <div className="flex justify-end">
-                        <Button>Update Password</Button>
+                        <Button type="submit" disabled={loading}>
+                          {loading ? 'Updating...' : 'Update Password'}
+                        </Button>
                       </div>
-                    </div>
+                    </form>
                   </div>
                   
                   <div className="pt-4 border-t">
