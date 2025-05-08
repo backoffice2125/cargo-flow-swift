@@ -61,6 +61,7 @@ export interface PdfGenerationOptions {
     grossWeightBags?: number;
     tareWeight?: number;
   };
+  logoImgData?: string; // Base64 data URL for logo
 }
 
 // Generate filename with the pattern: [Type], [Seal No], [Date in dd-MM-yy], [Current Time in HH:mm:ss]
@@ -70,6 +71,24 @@ const generateFileName = (type: 'CMR' | 'Pre-Alert', shipment: Shipment): string
   const currentTime = format(new Date(), 'HH:mm:ss');
   
   return `${type}, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
+};
+
+// Helper function to add logo to PDF
+const addLogoToPdf = (doc: jsPDF, logoImgData?: string) => {
+  if (logoImgData) {
+    try {
+      // Add logo at the top center of the page
+      // Size the logo appropriately (50mm width)
+      const logoWidth = 50;
+      const pageWidth = doc.internal.pageSize.width;
+      const xPosition = (pageWidth / 2) - (logoWidth / 2);
+      
+      doc.addImage(logoImgData, 'PNG', xPosition, 5, logoWidth, 15);
+    } catch (error) {
+      console.error('Error adding logo to PDF:', error);
+      // Continue without logo if there's an error
+    }
+  }
 };
 
 // Fetch shipment data with all details
@@ -188,19 +207,25 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
   const doc = new jsPDF();
   const summary = calculateShipmentSummary(details);
   
+  // Add logo at the top if provided
+  addLogoToPdf(doc, options?.logoImgData);
+  
+  // Adjust starting Y position based on whether logo is added
+  const startY = options?.logoImgData ? 25 : 20;
+  
   // Add header
   doc.setFontSize(20);
   doc.setTextColor(0, 51, 102);
-  doc.text('Shipment Completion Report', 105, 20, { align: 'center' });
+  doc.text('Shipment Completion Report', 105, startY, { align: 'center' });
   
   // Add horizontal line
   doc.setDrawColor(0, 51, 102);
-  doc.line(20, 25, 190, 25);
+  doc.line(20, startY + 5, 190, startY + 5);
   
   // Add shipment information
   doc.setFontSize(14);
   doc.setTextColor(0, 51, 102);
-  doc.text('Main Shipment Details:', 20, 35);
+  doc.text('Main Shipment Details:', 20, startY + 15);
   
   // Setup table for main details
   doc.setFontSize(10);
@@ -222,7 +247,7 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
   ];
 
   // Draw main details table
-  let y = 40;
+  let y = startY + 20;
   mainDetails.forEach(detail => {
     doc.rect(20, y, 80, 8);
     doc.rect(100, y, 90, 8);
@@ -334,148 +359,155 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   // Format today's date for the signature fields
   const currentDate = format(new Date(), 'dd/MM/yy');
   
+  // Add logo at the top if provided
+  addLogoToPdf(doc, options?.logoImgData);
+  
+  // Adjust starting Y position based on whether logo is added
+  const startY = options?.logoImgData ? 25 : 15;
+  
   // Set up the document
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8); // Standardize content text to 8pt normal font
   
   // Add header
   doc.setFontSize(16);
-  doc.text('CRM', 105, 15, { align: 'center' });
+  doc.text('CRM', 105, startY, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 105, 22, { align: 'center' });
+  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 105, startY + 7, { align: 'center' });
   
   // Add border around entire page
-  doc.rect(10, 30, 190, 250);
+  doc.rect(10, startY + 15, 190, 250);
   
   // First row with sender and declaration
-  doc.rect(10, 30, 95, 40); // Left box for sender
-  doc.rect(105, 30, 95, 40); // Right box for declaration
+  doc.rect(10, startY + 15, 95, 40); // Left box for sender
+  doc.rect(105, startY + 15, 95, 40); // Right box for declaration
   
   // Add "Sender" label - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('SENDER (NAME, ADDRESS, COUNTRY)', 12, 37);
+  doc.text('SENDER (NAME, ADDRESS, COUNTRY)', 12, startY + 22);
   
   // Sender content
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   if (addressSettings) {
-    doc.text(addressSettings.sender_name, 12, 40);
-    doc.text(`Unit ${addressSettings.sender_address}`, 12, 45);
-    doc.text(`${addressSettings.sender_city}`, 12, 50);
-    doc.text(`${addressSettings.sender_postal_code}`, 12, 55);
-    doc.text(`${addressSettings.sender_country}`, 12, 60);
+    doc.text(addressSettings.sender_name, 12, startY + 25);
+    doc.text(`Unit ${addressSettings.sender_address}`, 12, startY + 30);
+    doc.text(`${addressSettings.sender_city}`, 12, startY + 35);
+    doc.text(`${addressSettings.sender_postal_code}`, 12, startY + 40);
+    doc.text(`${addressSettings.sender_country}`, 12, startY + 45);
   } else {
-    doc.text('Asendia UK', 12, 40);
-    doc.text('Unit 1-12 Heathrow Estate', 12, 45);
-    doc.text('Silver Jubilee way', 12, 50);
-    doc.text('Hounslow', 12, 55);
-    doc.text('TW4 6NF', 12, 60);
+    doc.text('Asendia UK', 12, startY + 25);
+    doc.text('Unit 1-12 Heathrow Estate', 12, startY + 30);
+    doc.text('Silver Jubilee way', 12, startY + 35);
+    doc.text('Hounslow', 12, startY + 40);
+    doc.text('TW4 6NF', 12, startY + 45);
   }
   
   // Add "Declaration" label on the right - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 107, 37);
+  doc.text('INTERNATIONAL CONSIGNMENT NOTE', 107, startY + 22);
   
+  // Continue with the rest of the CMR document with adjusted Y positions
   // Second row with consignee
-  doc.rect(10, 70, 95, 40); // Left box for consignee
-  doc.rect(105, 70, 95, 40); // Right box for sender/agent reference
+  doc.rect(10, startY + 55, 95, 40); // Left box for consignee
+  doc.rect(105, startY + 55, 95, 40); // Right box for sender/agent reference
   
   // Add "Consignee" label - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS)', 12, 75);
+  doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS)', 12, startY + 60);
   
   // Consignee content
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   if (addressSettings) {
-    doc.text(addressSettings.receiver_name, 12, 85);
-    doc.text(addressSettings.receiver_address, 12, 95);
-    doc.text(`${addressSettings.receiver_country}`, 12, 100);
+    doc.text(addressSettings.receiver_name, 12, startY + 70);
+    doc.text(addressSettings.receiver_address, 12, startY + 80);
+    doc.text(`${addressSettings.receiver_country}`, 12, startY + 85);
   } else {
-    doc.text('La Poste, Rte Du Baste De Laval, Relays 95,', 12, 85);
-    doc.text('France', 12, 95);
+    doc.text('La Poste, Rte Du Baste De Laval, Relays 95,', 12, startY + 70);
+    doc.text('France', 12, startY + 80);
   }
   
   // Add "Sender/Agent reference" label on the right - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text("SENDER/AGENT REFERENCE", 107, 75);
+  doc.text("SENDER/AGENT REFERENCE", 107, startY + 60);
   
   // Third row with carrier information
-  doc.rect(10, 110, 95, 40); // Left box
-  doc.rect(105, 110, 95, 40); // Right box
+  doc.rect(10, startY + 95, 95, 40); // Left box
+  doc.rect(105, startY + 95, 95, 40); // Right box
   
   // Add carrier label - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, 115);
+  doc.text('CARRIER NAME, ADDRESS, COUNTRY', 12, startY + 100);
   
   // Carrier content
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`Carrier Name:`, 12, 125);
-  doc.text(`${shipment.carrier?.name || 'N/A'} ${shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ''}`, 50, 125);
-  doc.text(`TRUCK & TRAILER:`, 12, 135);
-  doc.text(`${shipment.truck_reg_no || 'N/A'} / ${shipment.trailer_reg_no || 'N/A'}`, 50, 135);
+  doc.text(`Carrier Name:`, 12, startY + 110);
+  doc.text(`${shipment.carrier?.name || 'N/A'} ${shipment.subcarrier?.name ? `- ${shipment.subcarrier.name}` : ''}`, 50, startY + 110);
+  doc.text(`TRUCK & TRAILER:`, 12, startY + 120);
+  doc.text(`${shipment.truck_reg_no || 'N/A'} / ${shipment.trailer_reg_no || 'N/A'}`, 50, startY + 120);
   
   // Fourth row
-  doc.rect(10, 150, 95, 70); // Left box
-  doc.rect(105, 150, 95, 70); // Right box
+  doc.rect(10, startY + 135, 95, 70); // Left box
+  doc.rect(105, startY + 135, 95, 70); // Right box
   
   // Add goods label - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, 155);
+  doc.text('MARKS, NOs, No. & KIND OF PACKAGES, DESCRIPTION OF GOODS', 12, startY + 140);
   
   // Goods content
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`Pallets: ${totalPallets}`, 12, 165);
-  doc.text(`Bags: ${totalBags}`, 12, 175);
-  doc.text(`SEAL #1 Number: ${shipment.seal_no || 'N/A'}`, 12, 185);
-  doc.text(`SEAL #2 Number: `, 12, 195);
-  doc.text(`Description of Goods: cross border eCommerce B2C parcels`, 12, 205);
+  doc.text(`Pallets: ${totalPallets}`, 12, startY + 150);
+  doc.text(`Bags: ${totalBags}`, 12, startY + 160);
+  doc.text(`SEAL #1 Number: ${shipment.seal_no || 'N/A'}`, 12, startY + 170);
+  doc.text(`SEAL #2 Number: `, 12, startY + 180);
+  doc.text(`Description of Goods: cross border eCommerce B2C parcels`, 12, startY + 190);
   
   // Add weight label on the right - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('GROSS WEIGHT (KG)', 107, 155);
-  doc.text('VOLUME (M³)', 155, 155);
+  doc.text('GROSS WEIGHT (KG)', 107, startY + 140);
+  doc.text('VOLUME (M³)', 155, startY + 140);
   
   // Weight content
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`${totalGrossWeight.toFixed(2)}`, 115, 170);
+  doc.text(`${totalGrossWeight.toFixed(2)}`, 115, startY + 155);
   
   // Fifth row
-  doc.rect(10, 220, 190, 20); // Full width box
+  doc.rect(10, startY + 205, 190, 20); // Full width box
   
   // Charges label - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('CARRIAGE CHARGES (FRAIS DE TRANSPORT)', 12, 225);
+  doc.text('CARRIAGE CHARGES (FRAIS DE TRANSPORT)', 12, startY + 210);
   
   // Sixth row with signature boxes
-  doc.rect(10, 240, 63, 40); // First signature box
-  doc.rect(73, 240, 63, 40); // Second signature box
-  doc.rect(136, 240, 64, 40); // Third signature box
+  doc.rect(10, startY + 225, 63, 40); // First signature box
+  doc.rect(73, startY + 225, 63, 40); // Second signature box
+  doc.rect(136, startY + 225, 64, 40); // Third signature box
   
   // Signature labels - Standardized to 6.5pt bold
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text('GOODS RECEIVED (MERCHANDISE REÇUE)', 12, 245);
-  doc.text('SIGNATURE OF CARRIER', 75, 245);
-  doc.text('FOR GOODS, SIGNATURE', 138, 245);
+  doc.text('GOODS RECEIVED (MERCHANDISE REÇUE)', 12, startY + 230);
+  doc.text('SIGNATURE OF CARRIER', 75, startY + 230);
+  doc.text('FOR GOODS, SIGNATURE', 138, startY + 230);
   
   // Signature date fields - now with today's date for the first two fields
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`Date: ${currentDate}`, 12, 270);
-  doc.text(`Date: ${currentDate}`, 75, 270);
-  doc.text('Date: __/__/__', 138, 270);
+  doc.text(`Date: ${currentDate}`, 12, startY + 255);
+  doc.text(`Date: ${currentDate}`, 75, startY + 255);
+  doc.text('Date: __/__/__', 138, startY + 255);
   
   // Save the PDF
   const pdfOutput = doc.output('datauristring');
