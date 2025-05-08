@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,21 +74,27 @@ const generateFileName = (type: 'CMR' | 'Pre-Alert', shipment: Shipment): string
   return `${type}, ${sealNo}, ${departureDate} ${currentTime}.pdf`;
 };
 
-// Helper function to add logo to PDF
+// Helper function to add logo to PDF - fixed to ensure consistent positioning
 const addLogoToPdf = (doc: jsPDF, logoImgData?: string) => {
   if (logoImgData) {
     try {
+      console.log("Adding logo to PDF...");
+      
       // Add logo at the top center of the page
       // Size the logo appropriately (50mm width)
       const logoWidth = 50;
-      const pageWidth = doc.internal.pageSize.width;
+      const pageWidth = doc.internal.pageSize.getWidth();
       const xPosition = (pageWidth / 2) - (logoWidth / 2);
       
+      // Using addImage with explicit format specification
       doc.addImage(logoImgData, 'PNG', xPosition, 5, logoWidth, 15);
+      console.log("Logo added successfully at position:", xPosition, 5);
     } catch (error) {
       console.error('Error adding logo to PDF:', error);
       // Continue without logo if there's an error
     }
+  } else {
+    console.log("No logo data provided to add to PDF");
   }
 };
 
@@ -206,6 +213,8 @@ export const generatePreAlertPDF = async (shipmentId: string, options?: PdfGener
   
   const doc = new jsPDF();
   const summary = calculateShipmentSummary(details);
+  
+  console.log("Generating Pre-Alert PDF with logo:", options?.logoImgData ? "Custom logo provided" : "Using default logo");
   
   // Add logo at the top if provided
   addLogoToPdf(doc, options?.logoImgData);
@@ -336,6 +345,8 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   
   const doc = new jsPDF();
   const summary = calculateShipmentSummary(details);
+  
+  console.log("Generating CMR PDF with logo:", options?.logoImgData ? "Custom logo provided" : "Using default logo");
   
   // Get CMR customization options with defaults
   const cmrOptions = options?.cmrOptions || {};
