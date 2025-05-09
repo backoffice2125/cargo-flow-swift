@@ -13,6 +13,7 @@ type AuthContextType = {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
+  refreshProfile: () => Promise<void>; // Added the missing refreshProfile function
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,6 +81,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  // Add the refreshProfile function that was missing
+  const refreshProfile = async () => {
+    if (!user) return;
+    
+    try {
+      await fetchProfile(user.id);
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
     }
   };
 
@@ -152,7 +164,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, signIn, signUp, signOut, loading }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      profile, 
+      signIn, 
+      signUp, 
+      signOut, 
+      loading,
+      refreshProfile // Add the refreshProfile function to the context value
+    }}>
       {children}
     </AuthContext.Provider>
   );
