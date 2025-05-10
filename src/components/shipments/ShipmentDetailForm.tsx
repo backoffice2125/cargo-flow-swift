@@ -469,6 +469,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 onValueChange={(value) => handleSelectChange("customer_id", value)}
                 value={formData.customer_id}
                 required
+                defaultValue={formData.customer_id}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select customer" />
@@ -489,6 +490,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 onValueChange={(value) => handleSelectChange("service_id", value)}
                 value={formData.service_id}
                 required
+                defaultValue={formData.service_id}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select service" />
@@ -675,6 +677,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
                 onValueChange={(value) => handleSelectChange("doe_id", value)}
                 value={formData.doe_id}
                 required
+                defaultValue={formData.doe_id}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select DOE" />
