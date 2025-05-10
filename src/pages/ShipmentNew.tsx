@@ -227,6 +227,7 @@ const ShipmentNew = () => {
                       name="driver_name"
                       value={formData.driver_name}
                       onChange={handleChange}
+                      uppercase={true}
                     />
                   </div>
 
@@ -237,6 +238,7 @@ const ShipmentNew = () => {
                       name="seal_no"
                       value={formData.seal_no}
                       onChange={handleChange}
+                      uppercase={true}
                     />
                   </div>
 
@@ -248,6 +250,7 @@ const ShipmentNew = () => {
                       type="date"
                       value={formData.departure_date}
                       onChange={handleChange}
+                      uppercase={false}
                     />
                   </div>
 
@@ -259,6 +262,7 @@ const ShipmentNew = () => {
                       type="date"
                       value={formData.arrival_date}
                       onChange={handleChange}
+                      uppercase={false}
                     />
                   </div>
 
@@ -269,6 +273,7 @@ const ShipmentNew = () => {
                       name="truck_reg_no"
                       value={formData.truck_reg_no}
                       onChange={handleChange}
+                      uppercase={true}
                     />
                   </div>
 
@@ -279,6 +284,7 @@ const ShipmentNew = () => {
                       name="trailer_reg_no"
                       value={formData.trailer_reg_no}
                       onChange={handleChange}
+                      uppercase={true}
                     />
                   </div>
                 </div>
