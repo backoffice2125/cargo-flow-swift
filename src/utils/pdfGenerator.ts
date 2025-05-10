@@ -192,12 +192,30 @@ export const calculateShipmentSummary = (details: ShipmentDetail[]) => {
     totalTareWeight: 0,
     totalNetWeight: 0,
     asendiaNetWeight: 0,
-    otherNetWeight: 0
+    otherNetWeight: 0,
+    palletGrossWeight: 0,  // New field for pallet weight
+    bagsGrossWeight: 0     // New field for bags weight
   };
 
   details.forEach(detail => {
     summary.totalPallets += detail.number_of_pallets;
     summary.totalBags += detail.number_of_bags;
+    
+    // Calculate gross weight for pallets vs bags
+    if (detail.number_of_pallets > 0 && detail.number_of_bags === 0) {
+      // Only pallets
+      summary.palletGrossWeight += Number(detail.gross_weight);
+    } else if (detail.number_of_pallets === 0 && detail.number_of_bags > 0) {
+      // Only bags
+      summary.bagsGrossWeight += Number(detail.gross_weight);
+    } else {
+      // Mixed shipment - allocate weight proportionally
+      // We'll consider that pallets are heavier than bags
+      // Assume 95% weight for pallets, 5% for bags in mixed shipments
+      summary.palletGrossWeight += Number(detail.gross_weight) * 0.95;
+      summary.bagsGrossWeight += Number(detail.gross_weight) * 0.05;
+    }
+    
     summary.totalGrossWeight += Number(detail.gross_weight);
     summary.totalTareWeight += Number(detail.tare_weight);
     summary.totalNetWeight += Number(detail.net_weight);
@@ -371,8 +389,15 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   const totalBags = cmrOptions.totalBags !== undefined ? cmrOptions.totalBags : summary.totalBags;
   
   // Calculate weights based on inputs or use summary data
-  const grossWeightPallets = cmrOptions.grossWeightPallets !== undefined ? cmrOptions.grossWeightPallets : summary.totalGrossWeight;
-  const grossWeightBags = cmrOptions.grossWeightBags !== undefined ? cmrOptions.grossWeightBags : 0;
+  // Modified to use separate weights for pallets and bags
+  const grossWeightPallets = cmrOptions.grossWeightPallets !== undefined 
+    ? cmrOptions.grossWeightPallets 
+    : summary.palletGrossWeight;
+    
+  const grossWeightBags = cmrOptions.grossWeightBags !== undefined 
+    ? cmrOptions.grossWeightBags 
+    : summary.bagsGrossWeight;
+    
   const totalGrossWeight = grossWeightPallets + grossWeightBags;
   
   // Calculate tare weight based on specified logic
@@ -512,7 +537,7 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('GROSS WEIGHT (KG)', 107, startY + 140);
   doc.text('VOLUME (M³)', 155, startY + 140);
   
-  // Weight content - Updated to show detailed breakdown
+  // Weight content - Updated to show detailed breakdown with corrected values
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text('Gross Weight of Pallets:', 107, startY + 150);
