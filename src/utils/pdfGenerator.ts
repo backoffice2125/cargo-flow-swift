@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -452,15 +453,17 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.setFont("helvetica", "bold");
   doc.text('CONSIGNEE (FINAL DELIVERY POINT NAME, ADDRESS)', 12, startY + 60);
   
-  // Consignee content
+  // Consignee content - Updated to include city and postal code
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   if (addressSettings) {
     doc.text(addressSettings.receiver_name, 12, startY + 70);
-    doc.text(addressSettings.receiver_address, 12, startY + 80);
+    doc.text(addressSettings.receiver_address, 12, startY + 75);
+    doc.text(`${addressSettings.receiver_city}, ${addressSettings.receiver_postal_code}`, 12, startY + 80);
     doc.text(`${addressSettings.receiver_country}`, 12, startY + 85);
   } else {
     doc.text('La Poste, Rte Du Baste De Laval, Relays 95,', 12, startY + 70);
+    doc.text('Paris, 75001', 12, startY + 75);
     doc.text('France', 12, startY + 80);
   }
   
@@ -510,10 +513,17 @@ export const generateCMRPDF = async (shipmentId: string, options?: PdfGeneration
   doc.text('GROSS WEIGHT (KG)', 107, startY + 140);
   doc.text('VOLUME (M³)', 155, startY + 140);
   
-  // Weight content
+  // Weight content - Updated to show detailed breakdown
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`${totalGrossWeight.toFixed(2)}`, 115, startY + 155);
+  doc.text('Gross Weight of Pallets:', 107, startY + 150);
+  doc.text(`${grossWeightPallets.toFixed(2)} kg`, 165, startY + 150);
+  
+  doc.text('Gross Weight of Bags:', 107, startY + 160);
+  doc.text(`${grossWeightBags.toFixed(2)} kg`, 165, startY + 160);
+  
+  doc.text('Total Gross Weight:', 107, startY + 170);
+  doc.text(`${totalGrossWeight.toFixed(2)} kg`, 165, startY + 170);
   
   // Fifth row
   doc.rect(10, startY + 205, 190, 20); // Full width box
