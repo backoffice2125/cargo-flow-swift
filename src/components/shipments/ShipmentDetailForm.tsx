@@ -121,6 +121,12 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
         if (customersError) throw customersError;
         setCustomers(customersData || []);
         
+        // Find "Asendia UK" customer and set it as default if not in edit mode
+        const asendiaCustomer = customersData?.find(c => c.name === "Asendia UK");
+        if (asendiaCustomer && !isEditMode) {
+          setFormData(prev => ({ ...prev, customer_id: asendiaCustomer.id }));
+        }
+        
         const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('id, name')
@@ -175,6 +181,12 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
           
         if (doeError) throw doeError;
         setDoeOptions(doeData || []);
+        
+        // Find "UZ" DOE and set it as default if not in edit mode
+        const uzDoe = doeData?.find(d => d.name === "UZ");
+        if (uzDoe && !isEditMode) {
+          setFormData(prev => ({ ...prev, doe_id: uzDoe.id }));
+        }
         
       } catch (error) {
         console.error('Error fetching dropdown data:', error);
