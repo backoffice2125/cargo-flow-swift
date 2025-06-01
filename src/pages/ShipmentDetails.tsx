@@ -29,6 +29,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from "@/components/ui/accordion";
 
 interface Shipment {
   id: string;
@@ -1008,138 +1014,145 @@ const ShipmentDetails = () => {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Shipment Details</CardTitle>
-              <CardDescription>
-                Manage the items in this shipment
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <FilePlus className="h-4 w-4 mr-2" />
-                    Documents
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleGeneratePreAlertPDF} disabled={pdfLoading}>
-                    Generate Pre-Alert PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleGenerateCMRPDF} disabled={pdfLoading}>
-                    Generate CMR PDF
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              {!showDetailForm && shipment.status === 'pending' && (
-                <Button onClick={() => setShowDetailForm(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Detail
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {showDetailForm ? (
-              <ShipmentDetailForm 
-                shipmentId={id || ""} 
-                onCancel={() => {
-                  setShowDetailForm(false);
-                  setEditingDetailId(null);
-                }}
-                onSave={handleSaveDetail}
-                isEditMode={!!editingDetailId}
-                detailId={editingDetailId}
-              />
-            ) : (
-              details.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No details added to this shipment yet.</p>
-                  {shipment.status === 'pending' && (
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => setShowDetailForm(true)}
-                    >
+        <Accordion type="single" collapsible defaultValue="shipment-details" className="w-full">
+          <AccordionItem value="shipment-details" className="border rounded-lg">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <div className="flex items-center justify-between w-full mr-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-left">Shipment Details</h3>
+                  <p className="text-sm text-muted-foreground text-left">
+                    Manage the items in this shipment
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" onClick={(e) => e.stopPropagation()}>
+                        <FilePlus className="h-4 w-4 mr-2" />
+                        Documents
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleGeneratePreAlertPDF} disabled={pdfLoading}>
+                        Generate Pre-Alert PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleGenerateCMRPDF} disabled={pdfLoading}>
+                        Generate CMR PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {!showDetailForm && shipment.status === 'pending' && (
+                    <Button onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDetailForm(true);
+                    }}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Detail
                     </Button>
                   )}
                 </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              {showDetailForm ? (
+                <ShipmentDetailForm 
+                  shipmentId={id || ""} 
+                  onCancel={() => {
+                    setShowDetailForm(false);
+                    setEditingDetailId(null);
+                  }}
+                  onSave={handleSaveDetail}
+                  isEditMode={!!editingDetailId}
+                  detailId={editingDetailId}
+                />
               ) : (
-                <div className="space-y-4">
-                  {/* Batch selection controls */}
-                  {shipment.status === 'pending' && visibleDetails.length > 0 && (
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="select-all"
-                          checked={selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length}
-                          onCheckedChange={handleSelectAll}
-                        />
-                        <label htmlFor="select-all" className="text-sm cursor-pointer">
-                          {selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length 
-                            ? "Deselect All" 
-                            : "Select All"}
-                        </label>
-                      </div>
-                      
-                      {selectedDetails.size > 0 && (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={handleBatchDelete}
-                          disabled={selectedDetails.size === 0}
-                        >
-                          <Trash className="h-4 w-4 mr-2" /> 
-                          Delete Selected ({selectedDetails.size})
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  
-                  {visibleDetails.map(detail => (
-                    <ShipmentDetailItem
-                      key={detail.id}
-                      detail={detail}
-                      onEdit={() => handleEditDetail(detail.id)}
-                      onDelete={() => handleDeleteDetail(detail.id)}
-                      isExpanded={expandedDetails[detail.id]}
-                      onToggleExpand={() => toggleDetailExpand(detail.id)}
-                      shipmentStatus={shipment.status}
-                      isSelected={selectedDetails.has(detail.id)}
-                      onSelectChange={shipment.status === 'pending' ? handleSelectDetail : undefined}
-                    />
-                  ))}
-                  
-                  {hasMoreDetails && (
-                    <div className="flex justify-center pt-4">
+                details.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No details added to this shipment yet.</p>
+                    {shipment.status === 'pending' && (
                       <Button 
-                        variant="ghost"
-                        onClick={toggleShowAllDetails}
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => setShowDetailForm(true)}
                       >
-                        {showAllDetails ? (
-                          <>
-                            <ChevronUp className="h-4 w-4 mr-2" />
-                            Show fewer details
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-4 w-4 mr-2" />
-                            Show all {details.length} details
-                          </>
-                        )}
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Detail
                       </Button>
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-          </CardContent>
-        </Card>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Batch selection controls */}
+                    {shipment.status === 'pending' && visibleDetails.length > 0 && (
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="select-all"
+                            checked={selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length}
+                            onCheckedChange={handleSelectAll}
+                          />
+                          <label htmlFor="select-all" className="text-sm cursor-pointer">
+                            {selectedDetails.size > 0 && selectedDetails.size === visibleDetails.length 
+                              ? "Deselect All" 
+                              : "Select All"}
+                          </label>
+                        </div>
+                        
+                        {selectedDetails.size > 0 && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={handleBatchDelete}
+                            disabled={selectedDetails.size === 0}
+                          >
+                            <Trash className="h-4 w-4 mr-2" /> 
+                            Delete Selected ({selectedDetails.size})
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {visibleDetails.map(detail => (
+                      <ShipmentDetailItem
+                        key={detail.id}
+                        detail={detail}
+                        onEdit={() => handleEditDetail(detail.id)}
+                        onDelete={() => handleDeleteDetail(detail.id)}
+                        isExpanded={expandedDetails[detail.id]}
+                        onToggleExpand={() => toggleDetailExpand(detail.id)}
+                        shipmentStatus={shipment.status}
+                        isSelected={selectedDetails.has(detail.id)}
+                        onSelectChange={shipment.status === 'pending' ? handleSelectDetail : undefined}
+                      />
+                    ))}
+                    
+                    {hasMoreDetails && (
+                      <div className="flex justify-center pt-4">
+                        <Button 
+                          variant="ghost"
+                          onClick={toggleShowAllDetails}
+                        >
+                          {showAllDetails ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-2" />
+                              Show fewer details
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-2" />
+                              Show all {details.length} details
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
 
       <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
