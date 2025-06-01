@@ -46,43 +46,43 @@ const ShipmentTable = ({ shipments, onSelectShipment, loading }: ShipmentTablePr
   return (
     <div className="border rounded-md overflow-hidden">
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[100px]">Departure Date</TableHead>
-              <TableHead className="min-w-[100px]">Arrival Date</TableHead>
-              <TableHead className="min-w-[100px]">Driver</TableHead>
-              <TableHead className="min-w-[120px]">Carrier</TableHead>
-              <TableHead className="min-w-[120px]">Subcarrier</TableHead>
-              <TableHead className="text-right min-w-[200px] sticky right-0 bg-background">Actions</TableHead>
+              <TableHead className="min-w-[120px]">Departure Date</TableHead>
+              <TableHead className="min-w-[120px]">Arrival Date</TableHead>
+              <TableHead className="min-w-[120px]">Driver</TableHead>
+              <TableHead className="min-w-[140px]">Carrier</TableHead>
+              <TableHead className="min-w-[140px]">Subcarrier</TableHead>
+              <TableHead className="text-right min-w-[220px] sticky right-0 bg-background shadow-[-4px_0_8px_rgba(0,0,0,0.1)]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shipments.map((shipment) => (
               <TableRow key={shipment.id}>
-                <TableCell className="min-w-[100px]">
+                <TableCell className="min-w-[120px]">
                   {format(new Date(shipment.departure_date), 'dd/MM/yyyy')}
                 </TableCell>
-                <TableCell className="min-w-[100px]">
+                <TableCell className="min-w-[120px]">
                   {format(new Date(shipment.arrival_date), 'dd/MM/yyyy')}
                 </TableCell>
-                <TableCell className="min-w-[100px]">{shipment.driver_name}</TableCell>
-                <TableCell className="min-w-[120px]">{shipment.carrier?.name || "N/A"}</TableCell>
-                <TableCell className="min-w-[120px]">{shipment.subcarrier?.name || "N/A"}</TableCell>
-                <TableCell className="text-right min-w-[200px] sticky right-0 bg-background border-l">
-                  <div className="flex gap-2 justify-end">
+                <TableCell className="min-w-[120px]">{shipment.driver_name}</TableCell>
+                <TableCell className="min-w-[140px]">{shipment.carrier?.name || "N/A"}</TableCell>
+                <TableCell className="min-w-[140px]">{shipment.subcarrier?.name || "N/A"}</TableCell>
+                <TableCell className="text-right min-w-[220px] sticky right-0 bg-background shadow-[-4px_0_8px_rgba(0,0,0,0.1)]">
+                  <div className="flex gap-1 justify-end px-2">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => onSelectShipment(shipment)}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap text-xs px-2"
                     >
-                      <Eye className="h-4 w-4 mr-1" /> 
+                      <Eye className="h-3 w-3 mr-1" /> 
                       Stats
                     </Button>
                     <Link to={`/shipments/${shipment.id}`}>
-                      <Button variant="outline" size="sm" className="whitespace-nowrap">
-                        View Details
+                      <Button variant="outline" size="sm" className="whitespace-nowrap text-xs px-2">
+                        Details
                       </Button>
                     </Link>
                   </div>
