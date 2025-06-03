@@ -295,8 +295,8 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
       setShowBagsField(true);
       // Reset tare weight when switching to bags
       setFormData(prev => {
-        // Calculate tare weight based on bags
-        const bagsWeight = prev.number_of_bags * 0.125;
+        // Calculate tare weight based on bags (changed from 0.125 to 0.11)
+        const bagsWeight = prev.number_of_bags * 0.11;
         return { ...prev, tare_weight: Number(bagsWeight.toFixed(3)) };
       });
     } else {
@@ -309,7 +309,8 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
   // Handle bags value change to update tare weight
   useEffect(() => {
     if (showBagsField && formData.number_of_bags >= 0) {
-      const bagsWeight = formData.number_of_bags * 0.125;
+      // Changed from 0.125 to 0.11 kg per bag
+      const bagsWeight = formData.number_of_bags * 0.11;
       setFormData(prev => ({ ...prev, tare_weight: Number(bagsWeight.toFixed(3)) }));
     }
   }, [formData.number_of_bags, showBagsField]);
@@ -653,7 +654,7 @@ const ShipmentDetailForm: React.FC<ShipmentDetailFormProps> = ({
               />
               <p className="text-xs text-muted-foreground">
                 {showBagsField 
-                  ? "Auto-calculated based on number of bags (0.125 kg per bag)" 
+                  ? "Auto-calculated based on number of bags (0.11 kg per bag)" 
                   : "Default value for pallets: 25.7 kg"}
               </p>
             </div>
